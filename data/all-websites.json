@@ -1,0 +1,319 @@
+{
+  "websites": [
+    {
+      "domain": "airfryerauthority.com",
+      "name": "Air Fryer Authority",
+      "keyword": "air fryer recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "antiinflammatorytable.com",
+      "name": "Anti-Inflammatory Table",
+      "keyword": "anti-inflammatory recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "balconyharvestkitchen.com",
+      "name": "Balcony Harvest Kitchen",
+      "keyword": "garden recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "bluezonefeast.com",
+      "name": "Blue Zone Feast",
+      "keyword": "longevity recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "brunchbright.com",
+      "name": "Brunch Bright",
+      "keyword": "brunch recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "budgertbiteshq.com",
+      "name": "Budget Bites HQ",
+      "keyword": "budget recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "chickendinnerhq.com",
+      "name": "Chicken Dinner HQ",
+      "keyword": "chicken recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "comfortfoodcozy.com",
+      "name": "Comfort Food Cozy",
+      "keyword": "comfort food recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "crunchcloudcandy.com",
+      "name": "Crunch Cloud Candy",
+      "keyword": "candy recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "doughwhisperer.com",
+      "name": "Dough Whisperer",
+      "keyword": "bread recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "eggandbloom.com",
+      "name": "Egg and Bloom",
+      "keyword": "egg recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "frozenmealhq.com",
+      "name": "Frozen Meal HQ",
+      "keyword": "freezer meal recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "grillandchillkitchen.com",
+      "name": "Grill and Chill Kitchen",
+      "keyword": "grilling recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "hormonehappymeals.com",
+      "name": "Hormone Happy Meals",
+      "keyword": "hormone balancing recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "justfivedinners.com",
+      "name": "Just Five Dinners",
+      "keyword": "5 ingredient recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "ketoterraneantable.com",
+      "name": "Keto-terranean Table",
+      "keyword": "keto mediterranean recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "leanproteinbowl.com",
+      "name": "Lean Protein Bowl",
+      "keyword": "protein bowl recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "liveto100kitchen.com",
+      "name": "Live to 100 Kitchen",
+      "keyword": "longevity recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "macroprepplates.com",
+      "name": "Macro Prep Plates",
+      "keyword": "macro friendly recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "mealprepmap.com",
+      "name": "Meal Prep Map",
+      "keyword": "meal prep recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "mineralspritzlab.com",
+      "name": "Mineral Spritz Lab",
+      "keyword": "healthy drink recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "minibatchmeals.com",
+      "name": "Mini Batch Meals",
+      "keyword": "small batch recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "moctailmixter.com",
+      "name": "Mocktail Mixter",
+      "keyword": "mocktail recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "oliveketokitchen.com",
+      "name": "Olive Keto Kitchen",
+      "keyword": "keto recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "onepotmagic.com",
+      "name": "One Pot Magic",
+      "keyword": "one pot recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "pintspinkitchen.com",
+      "name": "Pints Pin Kitchen",
+      "keyword": "beer recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "pressurepotplates.com",
+      "name": "Pressure Pot Plates",
+      "keyword": "pressure cooker recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "primalfeastkitchen.com",
+      "name": "Primal Feast Kitchen",
+      "keyword": "paleo recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "proteinbentohq.com",
+      "name": "Protein Bento HQ",
+      "keyword": "bento box recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "proteinmuffinlab.com",
+      "name": "Protein Muffin Lab",
+      "keyword": "protein muffin recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "proteinprephub.com",
+      "name": "Protein Prep Hub",
+      "keyword": "protein prep recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "quickdinnerhub.com",
+      "name": "Quick Dinner Hub",
+      "keyword": "quick dinner recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "saladsavy.com",
+      "name": "Salad Savy",
+      "keyword": "salad recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "shortgrainfoodtruck.com",
+      "name": "Short Grain Food Truck",
+      "keyword": "rice recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "slowcookstation.com",
+      "name": "Slow Cook Station",
+      "keyword": "slow cooker recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "snackstarter.com",
+      "name": "Snack Starter",
+      "keyword": "snack recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "sodafloatstudio.com",
+      "name": "Soda Float Studio",
+      "keyword": "dessert drink recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "soupandstewhq.com",
+      "name": "Soup and Stew HQ",
+      "keyword": "soup recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "soursnapkitchen.com",
+      "name": "Sour Snap Kitchen",
+      "keyword": "fermented recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "stoneagemealprep.com",
+      "name": "Stone Age Meal Prep",
+      "keyword": "paleo meal prep",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "sugarrushkitchen.com",
+      "name": "Sugar Rush Kitchen",
+      "keyword": "dessert recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "tableofseasons.com",
+      "name": "Table of Seasons",
+      "keyword": "seasonal recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "thesipspot.com",
+      "name": "The Sip Spot",
+      "keyword": "drink recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "thriftymealplan.com",
+      "name": "Thrifty Meal Plan",
+      "keyword": "budget meal recipes",
+      "quota": 30,
+      "active": true
+    },
+    {
+      "domain": "tinsandtoast.com",
+      "name": "Tins and Toast",
+      "keyword": "pantry recipes",
+      "quota": 30,
+      "active": true
+    }
+  ]
+}

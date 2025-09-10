@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Recipe Automation Dashboard
 
-## Getting Started
+A Next.js application for managing recipe keyword automation across 45+ food blog websites.
 
-First, run the development server:
+## Features
 
+- 🌐 **45 Pre-configured Websites** - All your websites are already loaded
+- ➕ **Add New Websites** - Easy form to add new sites to your collection
+- 🔍 **Search & Filter** - Quick search across all websites
+- ✅ **Bulk Selection** - Select all/deselect all functionality
+- 📊 **Clean Dashboard** - Modern, responsive interface
+
+## Deploy to Netlify
+
+### Option 1: One-Click Deploy (Recommended)
+
+1. Push this repository to GitHub
+2. Log in to [Netlify](https://netlify.com)
+3. Click "Add new site" → "Import an existing project"
+4. Connect your GitHub account and select this repository
+5. Click "Deploy site"
+
+### Option 2: Manual Deploy via Netlify CLI
+
+1. Install Netlify CLI:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install -g netlify-cli
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Login to Netlify:
+```bash
+netlify login
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Deploy:
+```bash
+netlify deploy --prod
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Option 3: Drag & Drop
 
-## Learn More
+1. Build the project locally:
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. Go to [Netlify Drop](https://app.netlify.com/drop)
+3. Drag the `.next` folder to the browser window
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Local Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+## Website List
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app includes 45 pre-configured websites:
+- airfryerauthority.com
+- antiinflammatorytable.com
+- balconyharvestkitchen.com
+- bluezonefeast.com
+- brunchbright.com
+- And 40 more...
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Adding New Websites
+
+1. Click "Add New Website" button
+2. Enter the domain (e.g., example.com)
+3. Set the search keyword
+4. Define weekly quota
+5. Click "Add Website"
+
+## Environment Variables (Optional)
+
+If you want to connect to a backend API, add these to Netlify:
+
+```
+NEXT_PUBLIC_API_URL=your-api-url
+```
+
+## Notes
+
+- The app currently stores websites in local state
+- To persist data, you'll need to connect to a backend API
+- All websites are set to "Active" by default
+- Weekly quota defaults to 30 recipes per website

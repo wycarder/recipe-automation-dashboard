@@ -78,6 +78,7 @@ export default function AutomationDashboard() {
 
     // Create JSON string for copying
     const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
+    const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
     
     // Show the JSON data in a copyable format
     setStatus(`Copy this JSON data and run it on your local machine:
@@ -85,7 +86,35 @@ export default function AutomationDashboard() {
 ${jsonData}
 
 Command to run:
-node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`);
+${command}`);
+  };
+
+  const handleCopyCommand = async () => {
+    if (selectedWebsites.length === 0) {
+      alert('Please select at least one website first');
+      return;
+    }
+
+    // Get the selected websites data
+    const selectedWebsiteData = selectedWebsites.map(domain => 
+      websites.find(w => w.domain === domain)
+    ).filter(Boolean);
+
+    const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
+    
+    try {
+      await navigator.clipboard.writeText(command);
+      setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = command;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
+    }
   };
 
   // Filter websites based on search term
@@ -164,11 +193,18 @@ node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`);
               Add New Website
             </button>
             <button 
-              style={{...styles.button, ...styles.primaryButton, opacity: selectedWebsites.length === 0 ? 0.5 : 1}}
+              style={{...styles.button, ...styles.secondaryButton, opacity: selectedWebsites.length === 0 ? 0.5 : 1}}
               onClick={handleStartAutomation}
               disabled={selectedWebsites.length === 0}
             >
-              Get Command for Local Automation
+              Show Command
+            </button>
+            <button 
+              style={{...styles.button, ...styles.primaryButton, opacity: selectedWebsites.length === 0 ? 0.5 : 1}}
+              onClick={handleCopyCommand}
+              disabled={selectedWebsites.length === 0}
+            >
+              📋 Copy Command
             </button>
           </div>
         </div>

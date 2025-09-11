@@ -76,7 +76,7 @@ export default function AutomationDashboard() {
     setStatus('Starting automation...');
 
     try {
-      const response = await fetch('/api/automation/start-collection', {
+      const response = await fetch('/api/automation/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -86,11 +86,12 @@ export default function AutomationDashboard() {
         })
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
-        const data = await response.json();
-        setStatus(`Automation started! Run ID: ${data.runId}`);
+        setStatus(`${data.message}. ${data.details.note}`);
       } else {
-        setStatus('Failed to start automation');
+        setStatus(`Error: ${data.details || data.error}`);
       }
     } catch (error) {
       setStatus('Error: ' + error);

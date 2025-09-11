@@ -76,8 +76,8 @@ export default function AutomationDashboard() {
     setStatus('Starting automation...');
 
     try {
-      // Call the Hetzner backend directly
-      const response = await fetch('http://178.156.141.138:3001/api/automation/start-collection', {
+      // Use proxy route to avoid Mixed Content issues
+      const response = await fetch('/api/automation/proxy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

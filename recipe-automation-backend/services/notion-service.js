@@ -26,7 +26,7 @@ class NotionService {
         const response = await this.notion.pages.create({
           parent: { database_id: this.recipesDbId },
           properties: {
-            'Title': {
+            'Name Keyword': {
               title: [
                 {
                   text: {
@@ -35,51 +35,15 @@ class NotionService {
                 }
               ]
             },
-            'URL': {
-              url: recipe.url
+            'Model Image URL': {
+              url: recipe.url || recipe.imageUrl || null
             },
-            'Source Domain': {
-              select: {
-                name: website.domain
-              }
-            },
-            'Keyword': {
-              multi_select: [
+            'Website': {
+              relation: [
                 {
-                  name: recipe.keyword || website.keyword
+                  id: await this.getWebsiteRelationId(website.domain)
                 }
               ]
-            },
-            'Description': {
-              rich_text: [
-                {
-                  text: {
-                    content: recipe.description || ''
-                  }
-                }
-              ]
-            },
-            'Author': {
-              rich_text: [
-                {
-                  text: {
-                    content: recipe.author || ''
-                  }
-                }
-              ]
-            },
-            'Collected Date': {
-              date: {
-                start: recipe.collectedAt || new Date().toISOString()
-              }
-            },
-            'Image URL': {
-              url: recipe.imageUrl || null
-            },
-            'Status': {
-              select: {
-                name: 'New'
-              }
             }
           }
         });
@@ -150,6 +114,32 @@ class NotionService {
       }
     } catch (error) {
       logger.error(`Failed to update website stats:`, error.message);
+    }
+  }
+
+  async getWebsiteRelationId(websiteDomain) {
+    try {
+      // Try to find the website in the websites database
+      const response = await this.notion.databases.query({
+        database_id: this.websitesDbId,
+        filter: {
+          property: 'Name',
+          title: {
+            equals: websiteDomain
+          }
+        }
+      });
+
+      if (response.results.length > 0) {
+        return response.results[0].id;
+      }
+      
+      // If not found, return null
+      logger.warn(`Website relation ID not found for: ${websiteDomain}`);
+      return null;
+    } catch (error) {
+      logger.error(`Failed to get website relation ID for ${websiteDomain}:`, error);
+      return null;
     }
   }
 

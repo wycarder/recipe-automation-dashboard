@@ -1,0 +1,14 @@
+{
+  "name": "local-automation",
+  "version": "1.0.0",
+  "description": "Local browser automation for PinClicks",
+  "main": "local-automation.js",
+  "scripts": {
+    "start": "node local-automation.js",
+    "test": "node local-automation.js '[{\"domain\":\"airfryerauthority.com\",\"name\":\"Air Fryer Authority\",\"keyword\":\"air fryer recipes\",\"quota\":30,\"active\":true}]'"
+  },
+  "dependencies": {
+    "playwright": "^1.45.0",
+    "form-data": "^4.0.0"
+  }
+}

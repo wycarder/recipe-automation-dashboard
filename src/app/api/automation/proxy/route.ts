@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Forward the request to the Hetzner backend
-    const backendUrl = 'http://178.156.141.138:3001/api/automation/start';
+    // Forward the request to your local webhook server
+    const backendUrl = 'http://192.168.1.151:3002/api/automation/start';
     
     const response = await fetch(backendUrl, {
       method: 'POST',

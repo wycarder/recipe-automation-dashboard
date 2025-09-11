@@ -1,19 +1,7 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
-  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[[redirects]]
-  from = "/api/automation/*"
-  to = "http://178.156.141.138/api/automation/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/health"
-  to = "http://178.156.141.138/health"
-  status = 200
-  force = true
+# Removed redirects to allow Next.js API routes to work

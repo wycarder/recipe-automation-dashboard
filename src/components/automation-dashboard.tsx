@@ -76,8 +76,8 @@ export default function AutomationDashboard() {
     setStatus('Starting automation...');
 
     try {
-      // Always use relative URL - Netlify will proxy to backend
-      const response = await fetch('/api/automation/start', {
+      // Call the Hetzner backend directly
+      const response = await fetch('http://178.156.141.138:3001/api/automation/start-collection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

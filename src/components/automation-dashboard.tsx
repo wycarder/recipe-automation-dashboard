@@ -9,7 +9,6 @@ import allWebsitesData from '../../data/all-websites.json';
 export default function AutomationDashboard() {
   const [websites, setWebsites] = useState<WebsiteData[]>([]);
   const [selectedWebsites, setSelectedWebsites] = useState<string[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
   const [status, setStatus] = useState<string>('');
   const [showAddWebsite, setShowAddWebsite] = useState(false);
   const [newWebsite, setNewWebsite] = useState({
@@ -66,43 +65,27 @@ export default function AutomationDashboard() {
     }
   };
 
-  const handleStartAutomation = async () => {
+  const handleStartAutomation = () => {
     if (selectedWebsites.length === 0) {
       alert('Please select at least one website');
       return;
     }
 
-    setIsRunning(true);
-    setStatus('Starting automation...');
+    // Get the selected websites data
+    const selectedWebsiteData = selectedWebsites.map(domain => 
+      websites.find(w => w.domain === domain)
+    ).filter(Boolean);
 
-    try {
-      // Use proxy route to avoid Mixed Content issues
-      const response = await fetch('/api/automation/proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          websites: selectedWebsites.map(domain => 
-            websites.find(w => w.domain === domain)
-          ).filter(Boolean)
-        })
-      });
+    // Create JSON string for copying
+    const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
+    
+    // Show the JSON data in a copyable format
+    setStatus(`Copy this JSON data and run it on your local machine:
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Handle different response formats
-        const statusMessage = data.details?.note 
-          ? `${data.message}. ${data.details.note}`
-          : data.message || 'Automation started successfully';
-        setStatus(statusMessage);
-      } else {
-        setStatus(`Error: ${data.error || data.details || 'Failed to start automation'}`);
-      }
-    } catch (error) {
-      setStatus('Error: ' + error);
-    } finally {
-      setIsRunning(false);
-    }
+${jsonData}
+
+Command to run:
+node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`);
   };
 
   // Filter websites based on search term
@@ -181,11 +164,11 @@ export default function AutomationDashboard() {
               Add New Website
             </button>
             <button 
-              style={{...styles.button, ...styles.primaryButton, opacity: isRunning || selectedWebsites.length === 0 ? 0.5 : 1}}
+              style={{...styles.button, ...styles.primaryButton, opacity: selectedWebsites.length === 0 ? 0.5 : 1}}
               onClick={handleStartAutomation}
-              disabled={isRunning || selectedWebsites.length === 0}
+              disabled={selectedWebsites.length === 0}
             >
-              {isRunning ? 'Running...' : 'Start Automation'}
+              Get Command for Local Automation
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node local-automation.js",
     "test": "node local-automation.js '[{\"domain\":\"airfryerauthority.com\",\"name\":\"Air Fryer Authority\",\"keyword\":\"air fryer recipes\",\"quota\":30,\"active\":true}]'",
+    "netlify": "node run-from-netlify.js",
     "webhook": "node webhook-server.js"
   },
   "dependencies": {

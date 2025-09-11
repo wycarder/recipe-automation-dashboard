@@ -76,7 +76,12 @@ export default function AutomationDashboard() {
     setStatus('Starting automation...');
 
     try {
-      const response = await fetch('/api/automation/start', {
+      // Use backend URL from environment or fallback to local API
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/automation/start`
+        : '/api/automation/start';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

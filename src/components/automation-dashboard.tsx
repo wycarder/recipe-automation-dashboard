@@ -90,9 +90,13 @@ export default function AutomationDashboard() {
       const data = await response.json();
       
       if (response.ok) {
-        setStatus(`${data.message}. ${data.details.note}`);
+        // Handle different response formats
+        const statusMessage = data.details?.note 
+          ? `${data.message}. ${data.details.note}`
+          : data.message || 'Automation started successfully';
+        setStatus(statusMessage);
       } else {
-        setStatus(`Error: ${data.details || data.error}`);
+        setStatus(`Error: ${data.error || data.details || 'Failed to start automation'}`);
       }
     } catch (error) {
       setStatus('Error: ' + error);

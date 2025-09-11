@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Forward the request to the Hetzner backend
-    const backendUrl = 'http://178.156.141.138:3001/api/automation/start-collection';
+    const backendUrl = 'http://178.156.141.138:3001/api/automation/start';
     
     const response = await fetch(backendUrl, {
       method: 'POST',

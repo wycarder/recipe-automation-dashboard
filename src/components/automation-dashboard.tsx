@@ -435,7 +435,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
               onClick={() => handleSelectWebsite(website.domain)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <h3 style={{ fontWeight: '500', margin: 0 }}>{website.domain}</h3>
+                <h3 style={{ fontWeight: '600', margin: 0, color: '#1a1a1a', fontSize: '1rem' }}>{website.domain}</h3>
                 <input
                   type="checkbox"
                   checked={selectedWebsites.includes(website.domain)}

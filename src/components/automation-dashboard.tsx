@@ -286,14 +286,14 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
 
   return (
     <div style={styles.container}>
-      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem' }}>
+      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '2rem', color: '#1a1a1a' }}>
         Recipe Keyword Automation Dashboard
       </h1>
 
       {/* Control Panel */}
       <div style={styles.card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '600' }}>Control Panel</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a' }}>Control Panel</h2>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button 
               style={{...styles.button, ...styles.secondaryButton}}
@@ -336,7 +336,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
             value={recipeTheme}
             onChange={(e) => setRecipeTheme(e.target.value)}
           />
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+          <p style={{ fontSize: '0.875rem', color: '#4b5563', marginTop: '0.5rem' }}>
             AI will generate contextually relevant keywords based on this theme for each selected website
           </p>
         </div>
@@ -344,12 +344,12 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
         {/* Add Website Form */}
         {showAddWebsite && (
           <div style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
               Add New Website
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block' }}>Domain</label>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Domain</label>
                 <input
                   type="text"
                   style={styles.input}
@@ -359,7 +359,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block' }}>Search Keyword</label>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Search Keyword</label>
                 <input
                   type="text"
                   style={styles.input}
@@ -369,7 +369,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block' }}>Weekly Quota</label>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Weekly Quota</label>
                 <input
                   type="number"
                   style={styles.input}
@@ -405,7 +405,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
             <button style={{...styles.button, ...styles.secondaryButton}} onClick={handleDeselectAll}>
               Clear Selection
             </button>
-            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
               {selectedWebsites.length} websites selected
             </span>
           </div>
@@ -421,7 +421,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
 
       {/* Website Grid */}
       <div style={styles.card}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
           Available Websites ({filteredWebsites.length})
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
@@ -444,10 +444,10 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                   style={{ cursor: 'pointer' }}
                 />
               </div>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '0.25rem' }}>
                 Keyword: {website.keyword}
               </p>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
                 Weekly quota: {website.quota} recipes
               </p>
               <div style={{ marginTop: '0.5rem' }}>
@@ -456,7 +456,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                   padding: '0.25rem 0.5rem',
                   borderRadius: '4px',
                   backgroundColor: website.active ? '#d1fae5' : '#f3f4f6',
-                  color: website.active ? '#065f46' : '#6b7280'
+                  color: website.active ? '#065f46' : '#4b5563'
                 }}>
                   {website.active ? 'Active' : 'Inactive'}
                 </span>

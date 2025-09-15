@@ -188,6 +188,7 @@ class LocalAutomationService {
       });
       await this.page.waitForTimeout(2000);
 
+
       // Find and click the export/download button
       console.log('📁 Looking for export button...');
       const exportSelectors = [

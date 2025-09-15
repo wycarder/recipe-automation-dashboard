@@ -1,5 +1,6 @@
 const { Client } = require('@notionhq/client');
 const winston = require('winston');
+const URLConverter = require('../utils/url-converter');
 
 const logger = winston.createLogger({
   level: 'info',
@@ -36,7 +37,7 @@ class NotionService {
               ]
             },
             'Model Image URL': {
-              url: recipe.url || recipe.imageUrl || null
+              url: URLConverter.getModelImageUrl(recipe)
             },
             'Website': {
               relation: [

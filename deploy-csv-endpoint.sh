@@ -49,8 +49,9 @@ app.post("/api/recipes/upload-csv", upload.single("csvFile"), async (req, res) =
             // Clean and validate the recipe data\
             const recipe = {\
               title: row.title || row.Title || row.name || "Untitled Recipe",\
-              imageUrl: row.image_url || row.imageUrl || row.Image_URL || row.pin_url || row.pinUrl,\
+              imageUrl: row.image_url || row.imageUrl || row.Image_URL || "",\
               pinUrl: row.pin_url || row.pinUrl || row.url || "",\
+              url: row.url || row.pin_url || row.pinUrl || "",\
               website: websiteData.domain,\
               description: row.description || row.Description || "",\
               author: row.author || row.Author || "",\
@@ -59,8 +60,8 @@ app.post("/api/recipes/upload-csv", upload.single("csvFile"), async (req, res) =
               createdAt: new Date().toISOString()\
             };\
 \
-            // Only add if we have a title and image\
-            if (recipe.title && recipe.imageUrl) {\
+            // Only add if we have a title and some form of URL\
+            if (recipe.title && (recipe.imageUrl || recipe.pinUrl || recipe.url)) {\
               recipes.push(recipe);\
             }\
           } catch (error) {\

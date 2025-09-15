@@ -1,6 +1,7 @@
 const fs = require('fs');
 const csv = require('csv-parser');
 const fetch = require('node-fetch');
+const URLConverter = require('../utils/url-converter');
 require('dotenv').config();
 
 class LocalCSVProcessor {
@@ -135,7 +136,8 @@ class LocalCSVProcessor {
 
     return {
       recipeName,
-      pinterestUrl,
+      pinUrl: pinterestUrl, // Map pinterestUrl to pinUrl for URL converter
+      url: pinterestUrl, // Also set as url for URL converter
       imageUrl: imageUrl || pinterestUrl, // Use Pinterest URL as fallback for image
       description: description || '',
       websiteDomain: websiteData.domain,
@@ -197,7 +199,7 @@ class LocalCSVProcessor {
           }]
         },
         "Model Image URL": {
-          url: recipe.imageUrl
+          url: URLConverter.getModelImageUrl(recipe)
         },
         "Website": {
           relation: [{

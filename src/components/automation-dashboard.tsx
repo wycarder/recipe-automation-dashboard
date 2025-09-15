@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WebsiteData } from '../types';
+import AIKeywordService from '../services/ai-keyword-service';
 
 // Import all websites data
 import allWebsitesData from '../../data/all-websites.json';
@@ -18,6 +19,8 @@ export default function AutomationDashboard() {
     active: true
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [recipeTheme, setRecipeTheme] = useState('');
+  const [aiService] = useState(() => new AIKeywordService());
 
   useEffect(() => {
     // Load websites from the JSON file
@@ -65,28 +68,79 @@ export default function AutomationDashboard() {
     }
   };
 
-  const handleStartAutomation = () => {
+  const handleStartAutomation = async () => {
     if (selectedWebsites.length === 0) {
       alert('Please select at least one website');
       return;
     }
 
-    // Get the selected websites data
-    const selectedWebsiteData = selectedWebsites.map(domain => 
-      websites.find(w => w.domain === domain)
-    ).filter(Boolean);
+    setStatus('🤖 Generating AI-powered keywords...');
 
-    // Create JSON string for copying
-    const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
-    const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
-    
-    // Show the JSON data in a copyable format
-    setStatus(`Copy this JSON data and run it on your local machine:
+    try {
+      // Generate AI keywords for all selected websites
+      const generatedKeywords = await aiService.generateMultiWebsiteKeywords(
+        selectedWebsites,
+        recipeTheme.trim() || 'recipes', // Use theme if provided, otherwise default to 'recipes'
+        1 // Just get the best keyword for each website
+      );
+
+      // Get the selected websites data with AI-generated keywords
+      const selectedWebsiteData = selectedWebsites.map(domain => {
+        const baseWebsite = websites.find(w => w.domain === domain);
+        if (!baseWebsite) return null;
+
+        // Use AI-generated keyword if available, otherwise fall back to original
+        const aiKeywords = generatedKeywords.get(domain);
+        const keyword = aiKeywords && aiKeywords.length > 0 ? aiKeywords[0].keyword : baseWebsite.keyword;
+
+        return {
+          ...baseWebsite,
+          keyword,
+          originalKeyword: baseWebsite.keyword,
+          aiGenerated: !!aiKeywords
+        };
+      }).filter(Boolean);
+
+      // Create JSON string for copying
+      const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
+      const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
+      
+      // Show the JSON data in a copyable format
+      setStatus(`🤖 AI-Powered Search Configuration:
+
+${recipeTheme ? `Recipe Theme: "${recipeTheme}"` : 'General recipe search (no specific theme)'}
+Websites: ${selectedWebsites.length}
+
+Generated Keywords:
+${Array.from(generatedKeywords.entries()).map(([domain, keywords]) => 
+  `${domain}: ${keywords[0]?.keyword || 'Using original keyword'}`
+).join('\n')}
+
+Command to run:
+${command}
+
+JSON Data:
+${jsonData}`);
+
+    } catch (error) {
+      console.error('Error generating AI keywords:', error);
+      setStatus('❌ Error generating AI keywords. Using original keywords instead.');
+      
+      // Fallback to original functionality
+      const selectedWebsiteData = selectedWebsites.map(domain => 
+        websites.find(w => w.domain === domain)
+      ).filter(Boolean);
+
+      const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
+      const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
+      
+      setStatus(`Copy this JSON data and run it on your local machine:
 
 ${jsonData}
 
 Command to run:
 ${command}`);
+    }
   };
 
   const handleCopyCommand = async () => {
@@ -95,25 +149,80 @@ ${command}`);
       return;
     }
 
-    // Get the selected websites data
-    const selectedWebsiteData = selectedWebsites.map(domain => 
-      websites.find(w => w.domain === domain)
-    ).filter(Boolean);
+    setStatus('🤖 Generating AI-powered keywords...');
 
-    const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
-    
     try {
-      await navigator.clipboard.writeText(command);
-      setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = command;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
+      // Generate AI keywords for all selected websites
+      const generatedKeywords = await aiService.generateMultiWebsiteKeywords(
+        selectedWebsites,
+        recipeTheme.trim() || 'recipes',
+        1
+      );
+
+      // Get the selected websites data with AI-generated keywords
+      const selectedWebsiteData = selectedWebsites.map(domain => {
+        const baseWebsite = websites.find(w => w.domain === domain);
+        if (!baseWebsite) return null;
+
+        const aiKeywords = generatedKeywords.get(domain);
+        const keyword = aiKeywords && aiKeywords.length > 0 ? aiKeywords[0].keyword : baseWebsite.keyword;
+
+        return {
+          ...baseWebsite,
+          keyword,
+          originalKeyword: baseWebsite.keyword,
+          aiGenerated: !!aiKeywords
+        };
+      }).filter(Boolean);
+
+      const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
+      
+      try {
+        await navigator.clipboard.writeText(command);
+        setStatus(`✅ AI-powered command copied to clipboard! Paste it in your terminal.
+
+Generated Keywords:
+${Array.from(generatedKeywords.entries()).map(([domain, keywords]) => 
+  `${domain}: ${keywords[0]?.keyword || 'Using original keyword'}`
+).join('\n')}`);
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = command;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setStatus(`✅ AI-powered command copied to clipboard! Paste it in your terminal.
+
+Generated Keywords:
+${Array.from(generatedKeywords.entries()).map(([domain, keywords]) => 
+  `${domain}: ${keywords[0]?.keyword || 'Using original keyword'}`
+).join('\n')}`);
+      }
+    } catch (error) {
+      console.error('Error generating AI keywords:', error);
+      setStatus('❌ Error generating AI keywords. Using original keywords instead.');
+      
+      // Fallback to original functionality
+      const selectedWebsiteData = selectedWebsites.map(domain => 
+        websites.find(w => w.domain === domain)
+      ).filter(Boolean);
+
+      const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
+      
+      try {
+        await navigator.clipboard.writeText(command);
+        setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
+      } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = command;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
+      }
     }
   };
 
@@ -207,6 +316,29 @@ ${command}`);
               📋 Copy Command
             </button>
           </div>
+        </div>
+
+        {/* Recipe Theme Input */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ 
+            fontSize: '1rem', 
+            fontWeight: '600', 
+            marginBottom: '0.5rem', 
+            display: 'block',
+            color: '#374151'
+          }}>
+            Recipe Theme (Optional)
+          </label>
+          <input
+            type="text"
+            style={styles.input}
+            placeholder="e.g., thanksgiving, summer BBQ, healthy breakfast... (leave empty for general recipes)"
+            value={recipeTheme}
+            onChange={(e) => setRecipeTheme(e.target.value)}
+          />
+          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+            AI will generate contextually relevant keywords based on this theme for each selected website
+          </p>
         </div>
 
         {/* Add Website Form */}

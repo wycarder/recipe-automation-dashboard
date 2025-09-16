@@ -88,7 +88,10 @@ export default function ContextEditorModal({
         ...prev,
         seasonalModifiers: {
           ...prev.seasonalModifiers,
-          [seasonalInput.season]: [...prev.seasonalModifiers[seasonalInput.season], seasonalInput.keyword.trim()]
+          [seasonalInput.season]: [
+            ...(prev.seasonalModifiers[seasonalInput.season as keyof typeof prev.seasonalModifiers] || []), 
+            seasonalInput.keyword.trim()
+          ]
         }
       }));
       setSeasonalInput(prev => ({ ...prev, keyword: '' }));

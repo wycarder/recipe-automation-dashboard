@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { WebsiteData } from '../types';
-import AIKeywordService from '../services/ai-keyword-service';
+import AIKeywordService, { CustomContext } from '../services/ai-keyword-service';
+import ContextEditorModal from './context-editor-modal';
 
 // Import all websites data
 import allWebsitesData from '../../data/all-websites.json';
@@ -21,6 +22,9 @@ export default function AutomationDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [recipeTheme, setRecipeTheme] = useState('');
   const [aiService] = useState(() => new AIKeywordService());
+  const [contextEditorOpen, setContextEditorOpen] = useState(false);
+  const [editingDomain, setEditingDomain] = useState<string>('');
+  const [customContexts, setCustomContexts] = useState<Map<string, CustomContext>>(new Map());
 
   useEffect(() => {
     // Load websites from the JSON file
@@ -31,7 +35,43 @@ export default function AutomationDashboard() {
       active: site.active
     }));
     setWebsites(loadedWebsites);
+    
+    // Load custom contexts
+    loadCustomContexts();
   }, []);
+
+  const loadCustomContexts = () => {
+    const contexts = new Map<string, CustomContext>();
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('recipe-automation-custom-contexts');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          Object.entries(parsed).forEach(([domain, context]) => {
+            contexts.set(domain, context as CustomContext);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load custom contexts:', error);
+      }
+    }
+    setCustomContexts(contexts);
+  };
+
+  const handleEditContext = (domain: string) => {
+    setEditingDomain(domain);
+    setContextEditorOpen(true);
+  };
+
+  const handleSaveContext = (domain: string, context: CustomContext) => {
+    aiService.setCustomContext(domain, context);
+    loadCustomContexts();
+  };
+
+  const handleDeleteContext = (domain: string) => {
+    aiService.removeCustomContext(domain);
+    loadCustomContexts();
+  };
 
   const handleSelectWebsite = (domain: string) => {
     setSelectedWebsites(prev =>
@@ -436,13 +476,33 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontWeight: '600', margin: 0, color: '#1a1a1a', fontSize: '1rem' }}>{website.domain}</h3>
-                <input
-                  type="checkbox"
-                  checked={selectedWebsites.includes(website.domain)}
-                  onChange={() => handleSelectWebsite(website.domain)}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ cursor: 'pointer' }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    style={{
+                      background: 'none',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      padding: '0.25rem 0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      color: '#6b7280'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditContext(website.domain);
+                    }}
+                    title="Edit context"
+                  >
+                    ⚙️
+                  </button>
+                  <input
+                    type="checkbox"
+                    checked={selectedWebsites.includes(website.domain)}
+                    onChange={() => handleSelectWebsite(website.domain)}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </div>
               </div>
               <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '0.25rem' }}>
                 Keyword: {website.keyword}
@@ -450,7 +510,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
               <p style={{ fontSize: '0.875rem', color: '#4b5563' }}>
                 Weekly quota: {website.quota} recipes
               </p>
-              <div style={{ marginTop: '0.5rem' }}>
+              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{
                   fontSize: '0.75rem',
                   padding: '0.25rem 0.5rem',
@@ -460,11 +520,32 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                 }}>
                   {website.active ? 'Active' : 'Inactive'}
                 </span>
+                {customContexts.has(website.domain) && (
+                  <span style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    backgroundColor: '#dbeafe',
+                    color: '#1e40af'
+                  }}>
+                    Custom Context
+                  </span>
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Context Editor Modal */}
+      <ContextEditorModal
+        isOpen={contextEditorOpen}
+        onClose={() => setContextEditorOpen(false)}
+        domain={editingDomain}
+        currentContext={editingDomain ? customContexts.get(editingDomain) || null : null}
+        onSave={handleSaveContext}
+        onDelete={handleDeleteContext}
+      />
     </div>
   );
 }

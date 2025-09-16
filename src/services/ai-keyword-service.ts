@@ -9,6 +9,25 @@ interface WebsiteTheme {
   targetAudience?: string;
 }
 
+interface CustomContext {
+  primaryTheme: string;
+  customKeywords: string[];
+  seasonalModifiers: {
+    fall: string[];
+    winter: string[];
+    summer: string[];
+    spring: string[];
+  };
+  notes: string;
+}
+
+interface DomainIntelligence {
+  detectedThemes: string[];
+  primaryFocus: string;
+  confidence: number;
+  reasoning: string;
+}
+
 interface KeywordVariation {
   keyword: string;
   confidence: number;
@@ -30,9 +49,11 @@ class AIKeywordService {
   private rotationIndex: Map<string, number> = new Map();
   private recentKeywords: Map<string, string[]> = new Map(); // Track recent keywords per website
   private categoryRotationIndex: Map<string, number> = new Map(); // Track category rotation
+  private customContexts: Map<string, CustomContext> = new Map(); // Store custom contexts
 
   constructor() {
     this.initializeWebsiteThemes();
+    this.loadCustomContexts();
   }
 
   // Recipe categories for variety when no theme is provided
@@ -53,40 +74,431 @@ class AIKeywordService {
     'dairy-free', 'keto-friendly', 'paleo-friendly', 'mediterranean-style'
   ];
 
-  private createFallbackTheme(domain: string): WebsiteTheme {
-    // Extract potential theme from domain name
-    const domainParts = domain.replace('.com', '').split(/[-_]/);
-    const lastPart = domainParts[domainParts.length - 1];
+  // Domain intelligence pattern recognition
+  private themePatterns = {
+    beverages: ['sip', 'drink', 'float', 'spritz', 'cocktail', 'mocktail', 'brew', 'juice', 'beverage', 'liquid'],
+    cookingMethods: ['airfryer', 'air-fryer', 'slowcook', 'slow-cook', 'crockpot', 'grill', 'pressure', 'instant', 'smoker', 'bake', 'fry', 'roast'],
+    dietary: ['keto', 'paleo', 'vegan', 'protein', 'healthy', 'sugar-free', 'low-carb', 'gluten-free', 'dairy-free'],
+    mealTypes: ['breakfast', 'dinner', 'lunch', 'snack', 'dessert', 'brunch', 'appetizer', 'side'],
+    baking: ['dough', 'bake', 'bread', 'pastry', 'cake', 'cookie', 'sweet', 'sugar', 'flour'],
+    cuisine: ['italian', 'mexican', 'asian', 'indian', 'mediterranean', 'french', 'chinese', 'japanese'],
+    comfort: ['comfort', 'cozy', 'hearty', 'warm', 'comforting'],
+    budget: ['budget', 'cheap', 'affordable', 'frugal', 'economical'],
+    quick: ['quick', 'fast', 'easy', 'simple', 'rapid', 'speedy', 'instant'],
+    // New patterns for better detection
+    frozen: ['frozen', 'freeze', 'freezer'],
+    mealPrep: ['meal', 'mealhq', 'mealprep', 'meal-prep', 'prep'],
+    protein: ['protein', 'meat', 'chicken', 'beef', 'pork'],
+    vegetarian: ['veg', 'vegetarian', 'plant', 'veggie'],
+    slow: ['slow', 'crockpot', 'slowcook', 'slow-cook'],
+    instant: ['instant', 'quick', 'fast', 'rapid'],
+    onePot: ['onepot', 'one-pot', 'skillet', 'pan'],
+    sheetPan: ['sheetpan', 'sheet-pan', 'tray'],
+    slowCooker: ['slowcooker', 'slow-cooker', 'crockpot'],
+    // Candy and sweets patterns
+    candy: ['candy', 'sweet', 'sweets', 'treats', 'crunch', 'cloud'],
+    desserts: ['dessert', 'desserts', 'sugar', 'sweet', 'cake', 'cookie', 'chocolate'],
+    // Enhanced patterns for compound domain analysis
+    gardenThemes: ['balcony', 'harvest', 'garden', 'farm', 'homegrown', 'organic', 'fresh', 'grow'],
+    seasonalThemes: ['harvest', 'seasonal', 'fresh', 'spring', 'summer', 'fall', 'autumn', 'winter'],
+    locationThemes: ['balcony', 'backyard', 'patio', 'indoor', 'outdoor', 'home', 'kitchen'],
+    kitchenStyles: ['kitchen', 'cook', 'chef', 'homemade', 'scratch', 'cooking', 'recipes'],
+    qualityThemes: ['premium', 'artisan', 'gourmet', 'handcrafted', 'authentic', 'traditional'],
+    sizeThemes: ['mini', 'small', 'bite', 'bites', 'hq', 'hub', 'spot', 'corner']
+  };
+
+  /**
+   * Build enhanced keywords by combining detected themes intelligently
+   */
+  private buildEnhancedKeyword(targetPrompt: string, theme: WebsiteTheme, intelligence: DomainIntelligence | null): string {
+    const prompt = targetPrompt.toLowerCase().trim();
     
-    // Try to infer theme from domain name
-    let primaryTheme = 'recipes';
-    let secondaryThemes = ['cooking', 'food'];
-    
-    if (lastPart.includes('keto')) {
-      primaryTheme = 'keto recipes';
-      secondaryThemes = ['low-carb', 'ketogenic'];
-    } else if (lastPart.includes('paleo')) {
-      primaryTheme = 'paleo recipes';
-      secondaryThemes = ['ancestral', 'whole foods'];
-    } else if (lastPart.includes('vegan')) {
-      primaryTheme = 'vegan recipes';
-      secondaryThemes = ['plant-based', 'dairy-free'];
-    } else if (lastPart.includes('healthy')) {
-      primaryTheme = 'healthy recipes';
-      secondaryThemes = ['nutritious', 'wellness'];
-    } else if (lastPart.includes('quick')) {
-      primaryTheme = 'quick recipes';
-      secondaryThemes = ['fast', 'easy'];
-    } else if (lastPart.includes('comfort')) {
-      primaryTheme = 'comfort food';
-      secondaryThemes = ['hearty', 'cozy'];
+    // If we have intelligence data, use it to build more specific keywords
+    if (intelligence && intelligence.detectedThemes.length > 0) {
+      const detectedThemes = intelligence.detectedThemes;
+      
+      // Special combinations for compound themes - preserve domain context with themes
+      if (detectedThemes.includes('gardenThemes') && detectedThemes.includes('seasonalThemes')) {
+        return `harvest recipes`;
+      }
+      if (detectedThemes.includes('gardenThemes') && detectedThemes.includes('kitchenStyles')) {
+        return `garden kitchen recipes`;
+      }
+      if (detectedThemes.includes('locationThemes') && detectedThemes.includes('gardenThemes')) {
+        return `home garden recipes`;
+      }
+      if (detectedThemes.includes('frozen') && detectedThemes.includes('mealPrep')) {
+        return `frozen meals`;
+      }
+      if (detectedThemes.includes('onePot') && detectedThemes.includes('mealPrep')) {
+        return `one pot meals`;
+      }
+      if (detectedThemes.includes('sheetPan') && detectedThemes.includes('mealTypes')) {
+        return `sheet pan meals`;
+      }
+      
+      // Handle garden themes specifically - preserve garden/harvest context
+      if (detectedThemes.includes('gardenThemes')) {
+        // For garden sites, always include garden/harvest context
+        if (detectedThemes.includes('seasonalThemes')) {
+          return prompt === 'recipes' || prompt === '' ? `harvest recipes` : `${prompt} harvest recipes`;
+        } else {
+          return prompt === 'recipes' || prompt === '' ? `garden recipes` : `${prompt} garden recipes`;
+        }
+      }
+      
+      // Handle candy themes specifically - preserve candy context
+      if (detectedThemes.includes('candy')) {
+        return prompt === 'recipes' || prompt === '' ? `candy recipes` : `${prompt} candy recipes`;
+      }
+      
+      // Handle brunch themes specifically - preserve brunch context
+      if (detectedThemes.includes('mealTypes') && intelligence.primaryFocus.includes('brunch')) {
+        return prompt === 'recipes' || prompt === '' ? `brunch recipes` : `${prompt} brunch recipes`;
+      }
+      
+      // Handle beverage themes specifically - preserve drink context
+      if (detectedThemes.includes('beverages')) {
+        return prompt === 'recipes' || prompt === '' ? `drinks` : `${prompt} drinks`;
+      }
+      
+      // Use the most relevant detected theme
+      const mostRelevantTheme = this.getMostRelevantTheme(detectedThemes);
+      if (mostRelevantTheme) {
+        return prompt === 'recipes' || prompt === '' ? `${mostRelevantTheme} recipes` : `${prompt} ${mostRelevantTheme} recipes`;
+      }
     }
+    
+    // Fallback to standard combination - avoid duplication
+    if (prompt === 'recipes' || prompt === '') {
+      return theme.primaryTheme;
+    }
+    return `${prompt} ${theme.primaryTheme}`;
+  }
+
+  /**
+   * Get the most relevant theme from detected themes
+   */
+  private getMostRelevantTheme(detectedThemes: string[]): string | null {
+    const priorityOrder = [
+      'gardenThemes', 'seasonalThemes', 'candy', 'desserts', 'beverages', 'mealTypes',
+      'frozen', 'mealPrep', 'onePot', 'sheetPan', 'cookingMethods',
+      'dietary', 'comfort', 'budget', 'quick', 'kitchenStyles'
+    ];
+    
+    for (const priority of priorityOrder) {
+      if (detectedThemes.includes(priority)) {
+        switch (priority) {
+          case 'gardenThemes': return 'harvest';
+          case 'seasonalThemes': return 'seasonal';
+          case 'candy': return 'candy';
+          case 'desserts': return 'dessert';
+          case 'beverages': return 'drinks';
+          case 'mealTypes': return 'brunch';
+          case 'frozen': return 'frozen meals';
+          case 'mealPrep': return 'meals';
+          case 'onePot': return 'one pot';
+          case 'sheetPan': return 'sheet pan';
+          case 'cookingMethods': return 'cooking';
+          case 'dietary': return 'diet';
+          case 'comfort': return 'comfort food';
+          case 'budget': return 'budget-friendly';
+          case 'quick': return 'quick';
+          case 'kitchenStyles': return 'kitchen';
+          default: return priority;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Split compound domain names into meaningful words
+   */
+  private splitCompoundDomain(domainLower: string): string[] {
+    // Common word boundaries and patterns
+    const commonWords = [
+      'kitchen', 'cook', 'cooking', 'recipes', 'food', 'meals', 'dinner', 'lunch', 'breakfast',
+      'harvest', 'garden', 'farm', 'fresh', 'organic', 'homegrown', 'seasonal',
+      'balcony', 'backyard', 'patio', 'indoor', 'outdoor', 'home',
+      'comfort', 'cozy', 'hearty', 'warm', 'comforting',
+      'budget', 'cheap', 'affordable', 'frugal', 'economical',
+      'quick', 'fast', 'easy', 'simple', 'rapid', 'speedy', 'instant',
+      'frozen', 'freeze', 'freezer', 'meal', 'mealhq', 'mealprep', 'prep',
+      'airfryer', 'air-fryer', 'grill', 'bake', 'fry', 'roast', 'slowcook',
+      'onepot', 'one-pot', 'sheetpan', 'sheet-pan', 'skillet', 'pan',
+      'keto', 'paleo', 'vegan', 'protein', 'healthy', 'sugar-free',
+      'dessert', 'desserts', 'sugar', 'sweet', 'cake', 'cookie', 'chocolate',
+      'candy', 'sweets', 'treats', 'crunch', 'cloud',
+      'beverages', 'drinks', 'cocktails', 'mocktails', 'juice', 'brew',
+      'hq', 'hub', 'spot', 'corner', 'authority', 'master', 'expert'
+    ];
+    
+    const words: string[] = [];
+    let remaining = domainLower;
+    
+    // Try to find common words first
+    for (const word of commonWords) {
+      if (remaining.includes(word)) {
+        words.push(word);
+        remaining = remaining.replace(word, '');
+      }
+    }
+    
+    // Split remaining characters into potential words
+    const remainingWords = remaining.split(/(?=[A-Z])|(?<=[a-z])(?=[A-Z])|[-_]/)
+      .filter(w => w.length > 2)
+      .map(w => w.toLowerCase());
+    
+    words.push(...remainingWords);
+    
+    return [...new Set(words)]; // Remove duplicates
+  }
+
+  /**
+   * Analyze domain name to detect themes and focus areas
+   */
+  private analyzeDomainIntelligence(domain: string): DomainIntelligence {
+    const domainLower = domain.toLowerCase().replace(/\.(com|org|net|co|io)$/, '');
+    const domainParts = domainLower.split(/[-_]/);
+    const detectedThemes: string[] = [];
+    let primaryFocus = 'recipes';
+    let confidence = 0.5;
+    let reasoning = 'Generic recipe site';
+
+    console.log(`\n🔍 Analyzing domain: ${domain}`);
+    console.log(`Domain parts: ${domainParts.join(', ')}`);
+    
+    // Enhanced word splitting for compound domains
+    const splitWords = this.splitCompoundDomain(domainLower);
+    console.log(`Split words: [${splitWords.map(w => `"${w}"`).join(', ')}]`);
+
+    // Check each pattern category
+    for (const [category, patterns] of Object.entries(this.themePatterns)) {
+      for (const pattern of patterns) {
+        if (domainLower.includes(pattern)) {
+          detectedThemes.push(category);
+          console.log(`  ✓ Found pattern "${pattern}" → category: ${category}`);
+          
+          // Set primary focus based on category
+          switch (category) {
+            case 'beverages':
+              primaryFocus = 'drinks beverages';
+              confidence = 0.9;
+              reasoning = `Domain contains "${pattern}" - detected as beverage/drink site`;
+              break;
+            case 'cookingMethods':
+              primaryFocus = `${pattern} cooking`;
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as ${pattern} cooking site`;
+              break;
+            case 'dietary':
+              primaryFocus = `${pattern} recipes`;
+              confidence = 0.9;
+              reasoning = `Domain contains "${pattern}" - detected as ${pattern} diet site`;
+              break;
+            case 'mealTypes':
+              primaryFocus = `${pattern} recipes`;
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as ${pattern} focused site`;
+              break;
+            case 'baking':
+              primaryFocus = 'baking desserts';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as baking/dessert site`;
+              break;
+            case 'cuisine':
+              primaryFocus = `${pattern} recipes`;
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as ${pattern} cuisine site`;
+              break;
+            case 'comfort':
+              primaryFocus = 'comfort food';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as comfort food site`;
+              break;
+            case 'budget':
+              primaryFocus = 'budget-friendly recipes';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as budget cooking site`;
+              break;
+            case 'quick':
+              primaryFocus = 'quick easy recipes';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as quick cooking site`;
+              break;
+            case 'frozen':
+              primaryFocus = 'frozen meals';
+              confidence = 0.9;
+              reasoning = `Domain contains "${pattern}" - detected as frozen meal site`;
+              break;
+            case 'mealPrep':
+              primaryFocus = 'meal prep recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as meal prep site`;
+              break;
+            case 'protein':
+              primaryFocus = 'protein recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as protein-focused site`;
+              break;
+            case 'vegetarian':
+              primaryFocus = 'vegetarian recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as vegetarian site`;
+              break;
+            case 'slow':
+              primaryFocus = 'slow cooker recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as slow cooking site`;
+              break;
+            case 'onePot':
+              primaryFocus = 'one pot meals';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as one pot cooking site`;
+              break;
+            case 'sheetPan':
+              primaryFocus = 'sheet pan recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as sheet pan cooking site`;
+              break;
+            case 'candy':
+              primaryFocus = 'candy recipes';
+              confidence = 0.95;
+              reasoning = `Domain contains "${pattern}" - detected as candy site`;
+              break;
+            case 'desserts':
+              primaryFocus = 'dessert recipes';
+              confidence = 0.9;
+              reasoning = `Domain contains "${pattern}" - detected as dessert site`;
+              break;
+            case 'gardenThemes':
+              primaryFocus = 'garden recipes';
+              confidence = 0.9;
+              reasoning = `Domain contains "${pattern}" - detected as garden/harvest site`;
+              break;
+            case 'seasonalThemes':
+              primaryFocus = 'seasonal recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as seasonal cooking site`;
+              break;
+            case 'locationThemes':
+              primaryFocus = 'home cooking';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as home cooking site`;
+              break;
+            case 'kitchenStyles':
+              primaryFocus = 'kitchen recipes';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as kitchen-focused site`;
+              break;
+            case 'qualityThemes':
+              primaryFocus = 'gourmet recipes';
+              confidence = 0.85;
+              reasoning = `Domain contains "${pattern}" - detected as premium cooking site`;
+              break;
+            case 'sizeThemes':
+              primaryFocus = 'bite-sized recipes';
+              confidence = 0.8;
+              reasoning = `Domain contains "${pattern}" - detected as small portion site`;
+              break;
+          }
+        }
+      }
+    }
+
+    // Special handling for compound patterns
+    if (detectedThemes.includes('frozen') && detectedThemes.includes('mealPrep')) {
+      primaryFocus = 'frozen meals';
+      confidence = 0.95;
+      reasoning = 'Domain contains both "frozen" and "meal" - detected as frozen meal site';
+    } else if (detectedThemes.includes('onePot') && detectedThemes.includes('mealPrep')) {
+      primaryFocus = 'one pot meals';
+      confidence = 0.95;
+      reasoning = 'Domain contains both "one pot" and "meal" - detected as one pot meal site';
+    } else if (detectedThemes.includes('sheetPan') && detectedThemes.includes('mealTypes')) {
+      primaryFocus = 'sheet pan meals';
+      confidence = 0.95;
+      reasoning = 'Domain contains both "sheet pan" and "dinner" - detected as sheet pan meal site';
+    } else if (detectedThemes.includes('gardenThemes') && detectedThemes.includes('seasonalThemes')) {
+      primaryFocus = 'harvest recipes';
+      confidence = 0.95;
+      reasoning = 'Domain contains both garden and seasonal themes - detected as harvest cooking site';
+    } else if (detectedThemes.includes('gardenThemes') && detectedThemes.includes('kitchenStyles')) {
+      primaryFocus = 'garden kitchen recipes';
+      confidence = 0.95;
+      reasoning = 'Domain contains both garden and kitchen themes - detected as garden kitchen site';
+    } else if (detectedThemes.includes('locationThemes') && detectedThemes.includes('gardenThemes')) {
+      primaryFocus = 'home garden recipes';
+      confidence = 0.9;
+      reasoning = 'Domain contains both location and garden themes - detected as home garden site';
+    } else if (detectedThemes.includes('frozen')) {
+      primaryFocus = 'frozen meals';
+      confidence = 0.9;
+      reasoning = 'Domain contains "frozen" - detected as frozen meal site';
+    } else if (detectedThemes.includes('onePot')) {
+      primaryFocus = 'one pot meals';
+      confidence = 0.9;
+      reasoning = 'Domain contains "one pot" - detected as one pot cooking site';
+    } else if (detectedThemes.includes('sheetPan')) {
+      primaryFocus = 'sheet pan recipes';
+      confidence = 0.9;
+      reasoning = 'Domain contains "sheet pan" - detected as sheet pan cooking site';
+    } else if (detectedThemes.includes('gardenThemes')) {
+      primaryFocus = 'garden recipes';
+      confidence = 0.9;
+      reasoning = 'Domain contains garden themes - detected as garden cooking site';
+    } else if (detectedThemes.includes('seasonalThemes')) {
+      primaryFocus = 'seasonal recipes';
+      confidence = 0.85;
+      reasoning = 'Domain contains seasonal themes - detected as seasonal cooking site';
+    } else if (detectedThemes.includes('mealPrep')) {
+      primaryFocus = 'meals';
+      confidence = 0.85;
+      reasoning = 'Domain contains "meal" - detected as meal-focused site';
+    }
+
+    // Special handling for specific patterns
+    if (domainLower.includes('mocktail') || domainLower.includes('mock')) {
+      primaryFocus = 'mocktails alcohol-free cocktails';
+      confidence = 0.95;
+      reasoning = 'Domain contains "mocktail" - detected as mocktail site';
+    } else if (domainLower.includes('sip')) {
+      primaryFocus = 'drinks beverages';
+      confidence = 0.9;
+      reasoning = 'Domain contains "sip" - detected as drink site';
+    } else if (domainLower.includes('airfryer') || domainLower.includes('air-fryer')) {
+      primaryFocus = 'air fryer recipes';
+      confidence = 0.95;
+      reasoning = 'Domain contains "airfryer" - detected as air fryer cooking site';
+    } else if (domainLower.includes('candy') || domainLower.includes('crunch') || domainLower.includes('cloud')) {
+      primaryFocus = 'candy recipes';
+      confidence = 0.95;
+      reasoning = 'Domain contains candy-related terms - detected as candy site';
+    }
+
+    console.log(`Detected themes: ${detectedThemes.join(', ')}`);
+    console.log(`Primary focus: ${primaryFocus}`);
+    console.log(`Confidence: ${confidence}`);
+
+    return {
+      detectedThemes,
+      primaryFocus,
+      confidence,
+      reasoning
+    };
+  }
+
+  private createFallbackTheme(domain: string): WebsiteTheme {
+    // Use domain intelligence analysis
+    const intelligence = this.analyzeDomainIntelligence(domain);
     
     return {
       domain,
       name: domain,
-      primaryTheme,
-      secondaryThemes,
+      primaryTheme: intelligence.primaryFocus,
+      secondaryThemes: intelligence.detectedThemes,
       targetAudience: 'recipe enthusiasts'
     };
   }
@@ -210,6 +622,20 @@ class AIKeywordService {
         primaryTheme: "drink recipes",
         secondaryThemes: ["beverages", "cocktails", "mocktails"],
         targetAudience: "drink enthusiasts"
+      },
+      {
+        domain: "crunchcloudcandy.com",
+        name: "Crunch Cloud Candy",
+        primaryTheme: "candy recipes",
+        secondaryThemes: ["sweet treats", "homemade candy", "desserts"],
+        targetAudience: "candy lovers"
+      },
+      {
+        domain: "balconyharvestkitchen.com",
+        name: "Balcony Harvest Kitchen",
+        primaryTheme: "garden recipes",
+        secondaryThemes: ["harvest cooking", "fresh vegetable recipes", "homegrown meals"],
+        targetAudience: "garden enthusiasts"
       }
     ];
 
@@ -219,19 +645,107 @@ class AIKeywordService {
   }
 
   /**
+   * Load custom contexts from localStorage
+   */
+  private loadCustomContexts(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('recipe-automation-custom-contexts');
+        if (stored) {
+          const contexts = JSON.parse(stored);
+          this.customContexts = new Map(Object.entries(contexts));
+        }
+      } catch (error) {
+        console.error('Failed to load custom contexts:', error);
+      }
+    }
+  }
+
+  /**
+   * Save custom contexts to localStorage
+   */
+  private saveCustomContexts(): void {
+    if (typeof window !== 'undefined') {
+      try {
+        const contexts = Object.fromEntries(this.customContexts);
+        localStorage.setItem('recipe-automation-custom-contexts', JSON.stringify(contexts));
+      } catch (error) {
+        console.error('Failed to save custom contexts:', error);
+      }
+    }
+  }
+
+  /**
+   * Add or update custom context for a domain
+   */
+  setCustomContext(domain: string, context: CustomContext): void {
+    this.customContexts.set(domain, context);
+    this.saveCustomContexts();
+  }
+
+  /**
+   * Get custom context for a domain
+   */
+  getCustomContext(domain: string): CustomContext | null {
+    return this.customContexts.get(domain) || null;
+  }
+
+  /**
+   * Remove custom context for a domain
+   */
+  removeCustomContext(domain: string): void {
+    this.customContexts.delete(domain);
+    this.saveCustomContexts();
+  }
+
+  /**
    * Generate AI-powered keyword variations for a website based on a target prompt
-   * Now with true rotation and variety to avoid repeated keywords
+   * Now with smart domain intelligence and custom context support
    */
   async generateKeywordVariations(
     websiteDomain: string, 
     targetPrompt: string, 
     count: number = 3
   ): Promise<KeywordVariation[]> {
-    let theme = this.websiteThemes.get(websiteDomain);
+    // Debug logging
+    console.log(`\n🔍 Domain Intelligence Analysis:`);
+    console.log(`Domain: ${websiteDomain}`);
+    console.log(`Target Prompt: "${targetPrompt}"`);
     
-    // If no theme found, create a fallback theme based on domain name
-    if (!theme) {
-      theme = this.createFallbackTheme(websiteDomain);
+    // CRITICAL CHECK: Ensure candy sites never get meat keywords
+    if (websiteDomain.includes('candy') || websiteDomain.includes('crunch') || websiteDomain.includes('cloud')) {
+      console.log(`🚨 CANDY SITE DETECTED: ${websiteDomain} - Ensuring candy-appropriate keywords only`);
+    }
+    
+    // Check for custom context first
+    const customContext = this.getCustomContext(websiteDomain);
+    let theme = this.websiteThemes.get(websiteDomain);
+    let intelligence: DomainIntelligence | null = null;
+    
+    if (customContext) {
+      console.log(`Custom context found: ${customContext.primaryTheme}`);
+      console.log(`Custom keywords: ${customContext.customKeywords.join(', ')}`);
+      
+      // Create theme from custom context
+      theme = {
+        domain: websiteDomain,
+        name: websiteDomain,
+        primaryTheme: customContext.primaryTheme,
+        secondaryThemes: customContext.customKeywords,
+        targetAudience: 'custom configured'
+      };
+    } else {
+      // Use domain intelligence analysis
+      intelligence = this.analyzeDomainIntelligence(websiteDomain);
+      console.log(`Detected themes: ${intelligence.detectedThemes.join(', ')}`);
+      console.log(`Primary focus: ${intelligence.primaryFocus}`);
+      console.log(`Confidence: ${intelligence.confidence}`);
+      console.log(`Reasoning: ${intelligence.reasoning}`);
+      
+      // If no theme found, create a fallback theme based on domain intelligence
+      if (!theme) {
+        theme = this.createFallbackTheme(websiteDomain);
+      }
     }
 
     // Get recent keywords for this website to avoid repetition
@@ -246,16 +760,57 @@ class AIKeywordService {
       variations.push(...rotatedVariations);
     } else {
       // For specific themes, still add some variety
-      const themedVariations = this.generateThemedVariations(targetPrompt, theme, count, recentKeywords);
+      const themedVariations = this.generateThemedVariations(targetPrompt, theme, count, recentKeywords, intelligence || null);
       variations.push(...themedVariations);
     }
 
+    // Apply redundancy prevention
+    const cleanedVariations = this.preventRedundancy(variations);
+
+    // CRITICAL SAFETY CHECK: Prevent candy sites from getting meat keywords
+    const domainLower = websiteDomain.toLowerCase();
+    if (domainLower.includes('candy') || domainLower.includes('sweet') || domainLower.includes('crunch')) {
+      const meatKeywords = ['pork', 'beef', 'chicken', 'meat', 'protein'];
+      const hasMeatKeywords = cleanedVariations.some(v => 
+        meatKeywords.some(meat => v.keyword.toLowerCase().includes(meat))
+      );
+      
+      if (hasMeatKeywords) {
+        console.error(`🚨 CRITICAL MISMATCH: Candy site ${websiteDomain} getting meat keywords!`);
+        console.error(`Generated keywords: ${cleanedVariations.map(v => v.keyword).join(', ')}`);
+        
+        // Replace with appropriate candy keywords
+        cleanedVariations.length = 0;
+        cleanedVariations.push({
+          keyword: `${targetPrompt} candy recipes`,
+          confidence: 0.95,
+          reasoning: 'Candy site - generated appropriate candy keywords instead of meat',
+          category: 'primary'
+        });
+        cleanedVariations.push({
+          keyword: `${targetPrompt} sweet treats`,
+          confidence: 0.9,
+          reasoning: 'Candy site - generated sweet treat keywords',
+          category: 'primary'
+        });
+        cleanedVariations.push({
+          keyword: `${targetPrompt} homemade candy`,
+          confidence: 0.85,
+          reasoning: 'Candy site - generated homemade candy keywords',
+          category: 'primary'
+        });
+      }
+    }
+
     // Record the generated keywords to avoid repetition in future calls
-    const generatedKeywords = variations.map(v => v.keyword);
+    const generatedKeywords = cleanedVariations.map(v => v.keyword);
     this.updateRecentKeywords(websiteDomain, generatedKeywords);
 
+    // Debug output
+    console.log(`Generated keywords: ${generatedKeywords.join(', ')}`);
+
     // Sort by confidence and return requested count
-    return variations
+    return cleanedVariations
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, count);
   }
@@ -272,8 +827,11 @@ class AIKeywordService {
     const variations: KeywordVariation[] = [];
     const currentIndex = this.categoryRotationIndex.get(websiteDomain) || 0;
     
+    // Get domain-appropriate categories based on the website's theme
+    const domainAppropriateCategories = this.getDomainAppropriateCategories(websiteDomain, theme);
+    
     // Get categories that haven't been used recently
-    const availableCategories = this.recipeCategories.filter(category => 
+    const availableCategories = domainAppropriateCategories.filter(category => 
       !recentKeywords.some(recent => recent.toLowerCase().includes(category.toLowerCase()))
     );
     
@@ -293,7 +851,7 @@ class AIKeywordService {
     });
     
     // Update rotation index
-    this.categoryRotationIndex.set(websiteDomain, (currentIndex + selectedCategories.length) % this.recipeCategories.length);
+    this.categoryRotationIndex.set(websiteDomain, (currentIndex + selectedCategories.length) % domainAppropriateCategories.length);
     
     return variations.slice(0, count);
   }
@@ -305,14 +863,24 @@ class AIKeywordService {
     targetPrompt: string, 
     theme: WebsiteTheme, 
     count: number, 
-    recentKeywords: string[]
+    recentKeywords: string[],
+    intelligence?: DomainIntelligence | null
   ): KeywordVariation[] {
     const variations: KeywordVariation[] = [];
     const prompt = targetPrompt.toLowerCase().trim();
 
-    // Generate primary variations that combine target prompt with website theme
+    // Generate enhanced primary variations that combine target prompt with website theme
+    const enhancedKeyword = this.buildEnhancedKeyword(targetPrompt, theme, intelligence || null);
+    variations.push({
+      keyword: enhancedKeyword,
+      confidence: 0.95,
+      reasoning: `Enhanced keyword combining "${targetPrompt}" with detected themes: ${intelligence?.detectedThemes.join(', ') || 'none'}`,
+      category: 'primary'
+    });
+    
+    // Add additional primary variations
     const primaryVariations = this.generatePrimaryVariations(targetPrompt, theme);
-    variations.push(...primaryVariations.slice(0, Math.ceil(count * 0.6)));
+    variations.push(...primaryVariations.slice(0, Math.ceil(count * 0.4)));
 
     // Generate secondary variations with different approaches
     const secondaryVariations = this.generateSecondaryVariations(targetPrompt, theme);
@@ -331,6 +899,97 @@ class AIKeywordService {
     );
 
     return filteredVariations.length > 0 ? filteredVariations : variations;
+  }
+
+  /**
+   * Get domain-appropriate categories based on the website's theme and domain
+   */
+  private getDomainAppropriateCategories(websiteDomain: string, theme: WebsiteTheme): string[] {
+    const domainLower = websiteDomain.toLowerCase();
+    
+    // Candy/sweet sites - only sweet categories
+    if (domainLower.includes('candy') || domainLower.includes('sweet') || domainLower.includes('crunch') || domainLower.includes('cloud')) {
+      return [
+        'dessert recipes', 'sweet treats', 'homemade candy', 'chocolate recipes',
+        'baking recipes', 'sugar recipes', 'candy recipes', 'treat recipes'
+      ];
+    }
+    
+    // Garden/harvest sites - only plant-based categories
+    if (domainLower.includes('garden') || domainLower.includes('harvest') || domainLower.includes('balcony') || domainLower.includes('farm')) {
+      return [
+        'vegetable recipes', 'garden recipes', 'harvest recipes', 'fresh produce recipes',
+        'plant-based recipes', 'organic recipes', 'homegrown recipes', 'seasonal recipes'
+      ];
+    }
+    
+    // Beverage sites - only drink categories
+    if (domainLower.includes('sip') || domainLower.includes('drink') || domainLower.includes('beverage') || domainLower.includes('mocktail')) {
+      return [
+        'drink recipes', 'beverage recipes', 'cocktail recipes', 'mocktail recipes',
+        'juice recipes', 'smoothie recipes', 'tea recipes', 'coffee recipes'
+      ];
+    }
+    
+    // Air fryer sites - only air fryer appropriate categories
+    if (domainLower.includes('airfryer') || domainLower.includes('air-fryer')) {
+      return [
+        'air fryer recipes', 'crispy recipes', 'healthy fried recipes', 'quick air fryer meals',
+        'air fryer chicken', 'air fryer vegetables', 'air fryer snacks', 'air fryer desserts'
+      ];
+    }
+    
+    // Keto sites - only keto appropriate categories
+    if (domainLower.includes('keto')) {
+      return [
+        'keto recipes', 'low-carb recipes', 'keto meals', 'keto snacks',
+        'keto desserts', 'keto breakfast', 'keto dinner', 'keto lunch'
+      ];
+    }
+    
+    // Vegetarian sites - only vegetarian categories
+    if (domainLower.includes('veg') || domainLower.includes('vegetarian') || domainLower.includes('plant')) {
+      return [
+        'vegetarian recipes', 'plant-based recipes', 'veggie recipes', 'meatless recipes',
+        'vegetable recipes', 'vegan recipes', 'plant protein recipes', 'green recipes'
+      ];
+    }
+    
+    // Budget sites - only budget appropriate categories
+    if (domainLower.includes('budget') || domainLower.includes('cheap') || domainLower.includes('affordable')) {
+      return [
+        'budget recipes', 'cheap meals', 'affordable recipes', 'frugal recipes',
+        'budget-friendly recipes', 'economical recipes', 'low-cost recipes', 'value recipes'
+      ];
+    }
+    
+    // Quick cooking sites - only quick appropriate categories
+    if (domainLower.includes('quick') || domainLower.includes('fast') || domainLower.includes('easy')) {
+      return [
+        'quick recipes', 'fast meals', 'easy recipes', '30-minute recipes',
+        'quick dinner', 'fast lunch', 'easy breakfast', 'speedy recipes'
+      ];
+    }
+    
+    // Brunch sites - only brunch appropriate categories
+    if (domainLower.includes('brunch') || domainLower.includes('bright')) {
+      return [
+        'brunch recipes', 'breakfast recipes', 'morning recipes', 'brunch ideas',
+        'breakfast casseroles', 'pancake recipes', 'waffle recipes', 'egg recipes',
+        'brunch cocktails', 'morning smoothies', 'breakfast pastries', 'brunch sides'
+      ];
+    }
+    
+    // Comfort food sites - only comfort appropriate categories
+    if (domainLower.includes('comfort') || domainLower.includes('cozy') || domainLower.includes('hearty')) {
+      return [
+        'comfort food', 'hearty recipes', 'cozy recipes', 'comforting meals',
+        'warm recipes', 'soul food', 'comforting dishes', 'homey recipes'
+      ];
+    }
+    
+    // Default to general categories if no specific pattern matches
+    return this.recipeCategories;
   }
 
   /**
@@ -354,26 +1013,31 @@ class AIKeywordService {
   private createCategoryVariations(category: string, theme: WebsiteTheme): KeywordVariation[] {
     const variations: KeywordVariation[] = [];
     
-    // Direct combination with primary theme
+    // For normal runs (no theme), just use the category as-is to avoid duplication
+    // The category should already be domain-appropriate
     variations.push({
-      keyword: `${category} ${theme.primaryTheme}`,
+      keyword: category,
       confidence: 0.95,
-      reasoning: `Combines recipe category "${category}" with website's primary theme "${theme.primaryTheme}"`,
+      reasoning: `Domain-appropriate category "${category}" for normal recipe search`,
       category: 'primary'
     });
 
-    // With secondary themes
-    theme.secondaryThemes.forEach(secondaryTheme => {
-      variations.push({
-        keyword: `${category} ${secondaryTheme}`,
-        confidence: 0.85,
-        reasoning: `Combines recipe category with secondary theme "${secondaryTheme}"`,
-        category: 'primary'
-      });
+    // Add variations with secondary themes only if they don't create duplication
+    theme.secondaryThemes.slice(0, 2).forEach(secondaryTheme => {
+      // Only add if it doesn't duplicate the category
+      if (!category.toLowerCase().includes(secondaryTheme.toLowerCase()) && 
+          !secondaryTheme.toLowerCase().includes(category.toLowerCase())) {
+        variations.push({
+          keyword: `${category} ${secondaryTheme}`,
+          confidence: 0.85,
+          reasoning: `Combines recipe category with secondary theme "${secondaryTheme}"`,
+          category: 'primary'
+        });
+      }
     });
 
-    // With cooking method
-    if (theme.cookingMethod) {
+    // With cooking method only if it adds value
+    if (theme.cookingMethod && !category.toLowerCase().includes(theme.cookingMethod.toLowerCase())) {
       variations.push({
         keyword: `${theme.cookingMethod} ${category}`,
         confidence: 0.88,
@@ -382,21 +1046,48 @@ class AIKeywordService {
       });
     }
 
-    // Add some cooking styles for variety
-    const randomStyles = this.cookingStyles
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 2);
-    
-    randomStyles.forEach(style => {
-      variations.push({
-        keyword: `${style} ${category} ${theme.primaryTheme}`,
-        confidence: 0.75,
-        reasoning: `Adds cooking style "${style}" for variety`,
-        category: 'secondary'
-      });
-    });
-
     return variations;
+  }
+
+  /**
+   * Prevent redundancy in keywords (e.g., "recipes recipes")
+   */
+  private preventRedundancy(variations: KeywordVariation[]): KeywordVariation[] {
+    return variations.map(variation => {
+      let keyword = variation.keyword;
+      
+      // Remove duplicate words
+      const words = keyword.toLowerCase().split(/\s+/);
+      const uniqueWords = [...new Set(words)];
+      
+      // Remove "recipes recipes" pattern
+      if (uniqueWords.includes('recipes') && uniqueWords.filter(w => w === 'recipes').length > 1) {
+        uniqueWords.splice(uniqueWords.lastIndexOf('recipes'), 1);
+      }
+      
+      // Remove "drinks drinks" pattern
+      if (uniqueWords.includes('drinks') && uniqueWords.filter(w => w === 'drinks').length > 1) {
+        uniqueWords.splice(uniqueWords.lastIndexOf('drinks'), 1);
+      }
+      
+      // Remove "beverages beverages" pattern
+      if (uniqueWords.includes('beverages') && uniqueWords.filter(w => w === 'beverages').length > 1) {
+        uniqueWords.splice(uniqueWords.lastIndexOf('beverages'), 1);
+      }
+      
+      // Remove "cooking cooking" pattern
+      if (uniqueWords.includes('cooking') && uniqueWords.filter(w => w === 'cooking').length > 1) {
+        uniqueWords.splice(uniqueWords.lastIndexOf('cooking'), 1);
+      }
+      
+      const cleanedKeyword = uniqueWords.join(' ');
+      
+      return {
+        ...variation,
+        keyword: cleanedKeyword,
+        reasoning: variation.reasoning + ' (redundancy cleaned)'
+      };
+    });
   }
 
   /**
@@ -694,10 +1385,17 @@ class AIKeywordService {
         const theme = this.websiteThemes.get(domain);
         let fallbackKeyword = theme ? `${targetPrompt} ${theme.primaryTheme}` : targetPrompt;
         
-        // Add some variety even to fallback keywords
+        // Add some variety even to fallback keywords - but respect domain identity
         if (targetPrompt.toLowerCase().trim() === 'recipes' || targetPrompt.toLowerCase().trim() === '') {
-          const randomCategory = this.recipeCategories[Math.floor(Math.random() * this.recipeCategories.length)];
-          fallbackKeyword = theme ? `${randomCategory} ${theme.primaryTheme}` : randomCategory;
+          // Use domain-appropriate categories instead of random ones
+          if (theme) {
+            const domainAppropriateCategories = this.getDomainAppropriateCategories(domain, theme);
+            const randomCategory = domainAppropriateCategories[Math.floor(Math.random() * domainAppropriateCategories.length)];
+            fallbackKeyword = `${randomCategory} ${theme.primaryTheme}`;
+          } else {
+            // If no theme, just use the target prompt
+            fallbackKeyword = targetPrompt;
+          }
         }
         
         results.set(domain, [{
@@ -714,4 +1412,4 @@ class AIKeywordService {
 }
 
 export default AIKeywordService;
-export type { KeywordVariation, KeywordRotationHistory, WebsiteTheme };
+export type { KeywordVariation, KeywordRotationHistory, WebsiteTheme, CustomContext, DomainIntelligence };

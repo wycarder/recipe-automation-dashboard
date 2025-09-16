@@ -679,6 +679,10 @@ class AIKeywordService {
    * Add or update custom context for a domain
    */
   setCustomContext(domain: string, context: CustomContext): void {
+    console.log(`💾 Saving context for ${domain}:`, context);
+    console.log(`💾 Custom keywords type:`, typeof context.customKeywords);
+    console.log(`💾 Custom keywords is array:`, Array.isArray(context.customKeywords));
+    console.log(`💾 Custom keywords length:`, context.customKeywords.length);
     this.customContexts.set(domain, context);
     this.saveCustomContexts();
   }
@@ -687,7 +691,15 @@ class AIKeywordService {
    * Get custom context for a domain
    */
   getCustomContext(domain: string): CustomContext | null {
-    return this.customContexts.get(domain) || null;
+    const context = this.customContexts.get(domain) || null;
+    if (context) {
+      console.log(`📖 Loading context for ${domain}:`, context);
+      console.log(`📖 Custom keywords type:`, typeof context.customKeywords);
+      console.log(`📖 Custom keywords is array:`, Array.isArray(context.customKeywords));
+      console.log(`📖 Custom keywords length:`, context.customKeywords.length);
+      console.log(`📖 Custom keywords content:`, context.customKeywords);
+    }
+    return context;
   }
 
   /**
@@ -699,8 +711,19 @@ class AIKeywordService {
   }
 
   /**
+   * Clear all custom contexts (for debugging corrupted data)
+   */
+  clearAllCustomContexts(): void {
+    console.log('🧹 Clearing all custom contexts');
+    this.customContexts.clear();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('recipe-automation-custom-contexts');
+    }
+  }
+
+  /**
    * Generate AI-powered keyword variations for a website based on a target prompt
-   * Now with smart domain intelligence and custom context support
+   * Now with manual context data prioritization and smart rotation
    */
   async generateKeywordVariations(
     websiteDomain: string, 
@@ -708,7 +731,7 @@ class AIKeywordService {
     count: number = 3
   ): Promise<KeywordVariation[]> {
     // Debug logging
-    console.log(`\n🔍 Domain Intelligence Analysis:`);
+    console.log(`\n🔍 Keyword Generation Analysis:`);
     console.log(`Domain: ${websiteDomain}`);
     console.log(`Target Prompt: "${targetPrompt}"`);
     
@@ -717,35 +740,41 @@ class AIKeywordService {
       console.log(`🚨 CANDY SITE DETECTED: ${websiteDomain} - Ensuring candy-appropriate keywords only`);
     }
     
-    // Check for custom context first
+    // Check for custom context first - THIS IS THE NEW PRIORITY
     const customContext = this.getCustomContext(websiteDomain);
-    let theme = this.websiteThemes.get(websiteDomain);
-    let intelligence: DomainIntelligence | null = null;
     
     if (customContext) {
-      console.log(`Custom context found: ${customContext.primaryTheme}`);
-      console.log(`Custom keywords: ${customContext.customKeywords.join(', ')}`);
+      console.log(`✅ Manual context found for ${websiteDomain}`);
+      console.log(`Primary Theme: ${customContext.primaryTheme}`);
+      console.log(`Custom Keywords: ${customContext.customKeywords.join(', ')}`);
+      console.log(`Custom Keywords Array Length: ${customContext.customKeywords.length}`);
+      console.log(`Custom Keywords Array:`, customContext.customKeywords);
+      console.log(`Seasonal Modifiers:`, customContext.seasonalModifiers);
       
-      // Create theme from custom context
-      theme = {
-        domain: websiteDomain,
-        name: websiteDomain,
-        primaryTheme: customContext.primaryTheme,
-        secondaryThemes: customContext.customKeywords,
-        targetAudience: 'custom configured'
-      };
-    } else {
-      // Use domain intelligence analysis
-      intelligence = this.analyzeDomainIntelligence(websiteDomain);
-      console.log(`Detected themes: ${intelligence.detectedThemes.join(', ')}`);
-      console.log(`Primary focus: ${intelligence.primaryFocus}`);
-      console.log(`Confidence: ${intelligence.confidence}`);
-      console.log(`Reasoning: ${intelligence.reasoning}`);
+      // Generate keywords using manual context data - return ONE keyword at a time
+      const contextBasedKeyword = this.generateSingleContextKeyword(
+        websiteDomain, 
+        targetPrompt, 
+        customContext
+      );
       
-      // If no theme found, create a fallback theme based on domain intelligence
-      if (!theme) {
-        theme = this.createFallbackTheme(websiteDomain);
+      if (contextBasedKeyword) {
+        console.log(`Generated single keyword from manual context: "${contextBasedKeyword.keyword}"`);
+        return [contextBasedKeyword];
       }
+    }
+    
+    // FALLBACK: Use domain intelligence analysis only if no manual context
+    console.log(`⚠️ No manual context found, falling back to domain analysis`);
+    const intelligence = this.analyzeDomainIntelligence(websiteDomain);
+    console.log(`Detected themes: ${intelligence.detectedThemes.join(', ')}`);
+    console.log(`Primary focus: ${intelligence.primaryFocus}`);
+    console.log(`Confidence: ${intelligence.confidence}`);
+    console.log(`Reasoning: ${intelligence.reasoning}`);
+    
+    let theme = this.websiteThemes.get(websiteDomain);
+    if (!theme) {
+      theme = this.createFallbackTheme(websiteDomain);
     }
 
     // Get recent keywords for this website to avoid repetition
@@ -760,7 +789,7 @@ class AIKeywordService {
       variations.push(...rotatedVariations);
     } else {
       // For specific themes, still add some variety
-      const themedVariations = this.generateThemedVariations(targetPrompt, theme, count, recentKeywords, intelligence || null);
+      const themedVariations = this.generateThemedVariations(targetPrompt, theme, count, recentKeywords, intelligence);
       variations.push(...themedVariations);
     }
 
@@ -813,6 +842,233 @@ class AIKeywordService {
     return cleanedVariations
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, count);
+  }
+
+  /**
+   * Generate a SINGLE keyword using manual context data with rotation
+   * This is the key fix - returns ONE keyword at a time, not multiple
+   */
+  private generateSingleContextKeyword(
+    websiteDomain: string,
+    targetPrompt: string,
+    customContext: CustomContext
+  ): KeywordVariation | null {
+    const prompt = targetPrompt.toLowerCase().trim();
+    
+    // 1. Check for seasonal modifiers first (highest priority)
+    const seasonalKeywords = this.getContextSeasonalKeywords(customContext, prompt);
+    if (seasonalKeywords.length > 0) {
+      console.log(`🍂 Using seasonal keywords for theme: ${prompt}`);
+      const rotatedSeasonal = this.rotateKeywords(websiteDomain, seasonalKeywords, 'seasonal');
+      if (rotatedSeasonal.length > 0) {
+        return rotatedSeasonal[0]; // Return only the first (rotated) keyword
+      }
+    }
+    
+    // 2. Use custom keywords with rotation (combine with theme if not "recipes")
+    if (customContext.customKeywords.length > 0) {
+      console.log(`🎯 Using custom keywords with rotation`);
+      console.log(`🎯 Custom keywords array:`, customContext.customKeywords);
+      const rotatedCustom = this.rotateKeywords(websiteDomain, customContext.customKeywords, 'custom');
+      console.log(`🎯 Rotated custom result:`, rotatedCustom);
+      if (rotatedCustom.length > 0) {
+        let finalKeyword = rotatedCustom[0].keyword;
+        
+        // If prompt is not "recipes", combine it with the custom keyword
+        if (prompt !== 'recipes' && prompt !== '') {
+          finalKeyword = `${prompt} ${rotatedCustom[0].keyword}`;
+          console.log(`🎯 Combined theme "${prompt}" with keyword: "${finalKeyword}"`);
+        }
+        
+        console.log(`🎯 Returning single keyword: "${finalKeyword}"`);
+        return {
+          keyword: finalKeyword,
+          confidence: 0.95,
+          reasoning: `Combined theme "${targetPrompt}" with rotated custom keyword`,
+          category: 'primary' as const
+        };
+      }
+    }
+    
+    // 3. Generate from primary theme
+    if (customContext.primaryTheme) {
+      console.log(`🎨 Generating from primary theme: ${customContext.primaryTheme}`);
+      const themeVariations = this.generateFromPrimaryTheme(prompt, customContext.primaryTheme, 1);
+      if (themeVariations.length > 0) {
+        return themeVariations[0]; // Return only the first theme variation
+      }
+    }
+    
+    // 4. If we still need a keyword, combine first custom keyword with target prompt
+    if (customContext.customKeywords.length > 0) {
+      const firstKeyword = customContext.customKeywords[0];
+      return {
+        keyword: `${prompt} ${firstKeyword}`,
+        confidence: 0.8,
+        reasoning: `Combined target prompt "${targetPrompt}" with custom keyword "${firstKeyword}"`,
+        category: 'primary' as const
+      };
+    }
+    
+    return null;
+  }
+
+  /**
+   * Generate keywords using manual context data with rotation and seasonal modifiers
+   * @deprecated - Use generateSingleContextKeyword instead for proper rotation
+   */
+  private generateContextBasedKeywords(
+    websiteDomain: string,
+    targetPrompt: string,
+    customContext: CustomContext,
+    count: number
+  ): KeywordVariation[] {
+    const variations: KeywordVariation[] = [];
+    const prompt = targetPrompt.toLowerCase().trim();
+    
+    // 1. Check for seasonal modifiers first (highest priority)
+    const seasonalKeywords = this.getContextSeasonalKeywords(customContext, prompt);
+    if (seasonalKeywords.length > 0) {
+      console.log(`🍂 Using seasonal keywords for theme: ${prompt}`);
+      const rotatedSeasonal = this.rotateKeywords(websiteDomain, seasonalKeywords, 'seasonal');
+      variations.push(...rotatedSeasonal.slice(0, count));
+      
+      if (variations.length >= count) {
+        return variations;
+      }
+    }
+    
+    // 2. Use custom keywords with rotation
+    if (customContext.customKeywords.length > 0) {
+      console.log(`🎯 Using custom keywords with rotation`);
+      const rotatedCustom = this.rotateKeywords(websiteDomain, customContext.customKeywords, 'custom');
+      variations.push(...rotatedCustom.slice(0, count - variations.length));
+      
+      if (variations.length >= count) {
+        return variations;
+      }
+    }
+    
+    // 3. Generate from primary theme
+    if (customContext.primaryTheme) {
+      console.log(`🎨 Generating from primary theme: ${customContext.primaryTheme}`);
+      const themeVariations = this.generateFromPrimaryTheme(prompt, customContext.primaryTheme, count - variations.length);
+      variations.push(...themeVariations);
+    }
+    
+    // 4. If we still need more keywords, combine custom keywords with target prompt
+    if (variations.length < count && customContext.customKeywords.length > 0) {
+      const remaining = count - variations.length;
+      const combinedKeywords = customContext.customKeywords.slice(0, remaining).map(keyword => ({
+        keyword: `${prompt} ${keyword}`,
+        confidence: 0.8,
+        reasoning: `Combined target prompt "${targetPrompt}" with custom keyword "${keyword}"`,
+        category: 'primary' as const
+      }));
+      variations.push(...combinedKeywords);
+    }
+    
+    return variations.slice(0, count);
+  }
+
+  /**
+   * Get seasonal keywords based on target prompt and context
+   */
+  private getContextSeasonalKeywords(customContext: CustomContext, targetPrompt: string): string[] {
+    const seasonalKeywords: string[] = [];
+    
+    // Check if target prompt matches a season
+    const seasonMap = {
+      'fall': customContext.seasonalModifiers.fall,
+      'autumn': customContext.seasonalModifiers.fall,
+      'thanksgiving': customContext.seasonalModifiers.fall,
+      'halloween': customContext.seasonalModifiers.fall,
+      'winter': customContext.seasonalModifiers.winter,
+      'christmas': customContext.seasonalModifiers.winter,
+      'holiday': customContext.seasonalModifiers.winter,
+      'summer': customContext.seasonalModifiers.summer,
+      'bbq': customContext.seasonalModifiers.summer,
+      'grilling': customContext.seasonalModifiers.summer,
+      'spring': customContext.seasonalModifiers.spring,
+      'easter': customContext.seasonalModifiers.spring
+    };
+    
+    // Find matching seasonal keywords
+    for (const [season, keywords] of Object.entries(seasonMap)) {
+      if (targetPrompt.includes(season) && keywords.length > 0) {
+        seasonalKeywords.push(...keywords);
+      }
+    }
+    
+    return seasonalKeywords;
+  }
+
+  /**
+   * Rotate through keywords to ensure variety
+   */
+  private rotateKeywords(
+    websiteDomain: string, 
+    keywords: string[], 
+    type: 'custom' | 'seasonal'
+  ): KeywordVariation[] {
+    if (keywords.length === 0) return [];
+    
+    console.log(`🔄 rotateKeywords called for ${websiteDomain}, type: ${type}`);
+    console.log(`🔄 Keywords array:`, keywords);
+    console.log(`🔄 Keywords array length:`, keywords.length);
+    
+    // Get or create rotation index for this domain and type
+    const rotationKey = `${websiteDomain}-${type}`;
+    const currentIndex = this.rotationIndex.get(rotationKey) || 0;
+    
+    console.log(`🔄 Current rotation index: ${currentIndex}`);
+    
+    // Get the next keyword in rotation
+    const selectedKeyword = keywords[currentIndex % keywords.length];
+    
+    console.log(`🔄 Selected keyword: "${selectedKeyword}"`);
+    
+    // Update rotation index
+    this.rotationIndex.set(rotationKey, (currentIndex + 1) % keywords.length);
+    
+    console.log(`🔄 Updated rotation index: ${(currentIndex + 1) % keywords.length}`);
+    
+    // Create variation
+    const result = [{
+      keyword: selectedKeyword,
+      confidence: 0.95,
+      reasoning: `Rotated ${type} keyword for ${websiteDomain}`,
+      category: type === 'seasonal' ? 'seasonal' as const : 'primary' as const
+    }];
+    
+    console.log(`🔄 Returning result:`, result);
+    return result;
+  }
+
+  /**
+   * Generate keywords from primary theme
+   */
+  private generateFromPrimaryTheme(targetPrompt: string, primaryTheme: string, count: number): KeywordVariation[] {
+    const variations: KeywordVariation[] = [];
+    
+    // Create variations combining target prompt with primary theme
+    const combinations = [
+      `${targetPrompt} ${primaryTheme}`,
+      `${primaryTheme} ${targetPrompt}`,
+      `${targetPrompt} ${primaryTheme} recipes`,
+      `${primaryTheme} ${targetPrompt} ideas`
+    ];
+    
+    combinations.slice(0, count).forEach(keyword => {
+      variations.push({
+        keyword,
+        confidence: 0.9,
+        reasoning: `Generated from primary theme "${primaryTheme}" with target prompt "${targetPrompt}"`,
+        category: 'primary'
+      });
+    });
+    
+    return variations;
   }
 
   /**

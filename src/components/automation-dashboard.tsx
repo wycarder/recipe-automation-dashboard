@@ -29,7 +29,11 @@ export default function AutomationDashboard() {
   const [editingWebsiteOriginalDomain, setEditingWebsiteOriginalDomain] = useState<string>('');
   const [showEditWebsite, setShowEditWebsite] = useState(false);
 
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    setIsClient(true);
+    
     // Load websites - first try localStorage, then fall back to JSON file
     const loadWebsites = () => {
       if (typeof window !== 'undefined') {
@@ -144,10 +148,12 @@ export default function AutomationDashboard() {
   };
 
   const handleEditWebsite = (website: WebsiteData) => {
+    console.log('🔍 Edit button clicked for website:', website.domain);
     setEditingWebsite({...website}); // Create a copy to avoid mutating original
     setEditingWebsiteOriginalDomain(website.domain); // Store original domain
     setShowEditWebsite(true);
     setShowAddWebsite(false); // Close add form if open
+    console.log('🔍 Edit form should now be open, showEditWebsite:', true);
   };
 
   const handleSaveEditWebsite = () => {
@@ -355,6 +361,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
     website.keyword.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
   const styles = {
     container: {
       maxWidth: '1200px',
@@ -521,7 +528,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
         )}
 
         {/* Edit Website Form */}
-        {showEditWebsite && editingWebsite && (
+        {isClient && showEditWebsite && editingWebsite && (
           <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fdba74', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
               Edit Website: {editingWebsite.domain}
@@ -621,72 +628,77 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                 ...styles.websiteCard,
                 ...(selectedWebsites.includes(website.domain) ? styles.selectedCard : {})
               }}
-              onClick={() => handleSelectWebsite(website.domain)}
+              onClick={() => isClient && handleSelectWebsite(website.domain)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontWeight: '600', margin: 0, color: '#1a1a1a', fontSize: '1rem' }}>{website.domain}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button
-                    style={{
-                      background: 'none',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      padding: '0.25rem 0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
-                      color: '#6b7280'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditWebsite(website);
-                    }}
-                    title="Edit website"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    style={{
-                      background: 'none',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      padding: '0.25rem 0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
-                      color: '#6b7280'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditContext(website.domain);
-                    }}
-                    title="Edit context"
-                  >
-                    ⚙️
-                  </button>
-                  <button
-                    style={{
-                      background: 'none',
-                      border: '1px solid #ef4444',
-                      borderRadius: '4px',
-                      padding: '0.25rem 0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem',
-                      color: '#ef4444'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteWebsite(website.domain);
-                    }}
-                    title="Delete website"
-                  >
-                    🗑️
-                  </button>
-                  <input
-                    type="checkbox"
-                    checked={selectedWebsites.includes(website.domain)}
-                    onChange={() => handleSelectWebsite(website.domain)}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ cursor: 'pointer' }}
-                  />
+                  {isClient && (
+                    <>
+                      <button
+                        style={{
+                          background: 'none',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          color: '#6b7280'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔍 Edit button clicked for:', website.domain);
+                          handleEditWebsite(website);
+                        }}
+                        title="Edit website"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        style={{
+                          background: 'none',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          color: '#6b7280'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditContext(website.domain);
+                        }}
+                        title="Edit context"
+                      >
+                        ⚙️
+                      </button>
+                      <button
+                        style={{
+                          background: 'none',
+                          border: '1px solid #ef4444',
+                          borderRadius: '4px',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          color: '#ef4444'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteWebsite(website.domain);
+                        }}
+                        title="Delete website"
+                      >
+                        🗑️
+                      </button>
+                      <input
+                        type="checkbox"
+                        checked={selectedWebsites.includes(website.domain)}
+                        onChange={() => handleSelectWebsite(website.domain)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
               <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '0.25rem' }}>

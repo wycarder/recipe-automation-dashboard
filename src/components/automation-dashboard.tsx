@@ -30,18 +30,48 @@ export default function AutomationDashboard() {
   const [showEditWebsite, setShowEditWebsite] = useState(false);
 
   useEffect(() => {
-    // Load websites from the JSON file
-    const loadedWebsites = allWebsitesData.websites.map(site => ({
-      domain: site.domain,
-      keyword: site.keyword,
-      quota: site.quota,
-      active: site.active
-    }));
-    setWebsites(loadedWebsites);
+    // Load websites - first try localStorage, then fall back to JSON file
+    const loadWebsites = () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('recipe-automation-websites');
+          if (stored) {
+            const parsedWebsites = JSON.parse(stored);
+            console.log('Loaded websites from localStorage:', parsedWebsites.length);
+            return parsedWebsites;
+          }
+        } catch (error) {
+          console.error('Failed to load websites from localStorage:', error);
+        }
+      }
+      
+      // Fallback to JSON file if no localStorage data
+      const loadedWebsites = allWebsitesData.websites.map(site => ({
+        domain: site.domain,
+        keyword: site.keyword,
+        quota: site.quota,
+        active: site.active
+      }));
+      console.log('Loaded websites from JSON file:', loadedWebsites.length);
+      return loadedWebsites;
+    };
+    
+    setWebsites(loadWebsites());
     
     // Load custom contexts
     loadCustomContexts();
   }, []);
+
+  const saveWebsitesToStorage = (websitesToSave: WebsiteData[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('recipe-automation-websites', JSON.stringify(websitesToSave));
+        console.log('Saved websites to localStorage:', websitesToSave.length);
+      } catch (error) {
+        console.error('Failed to save websites to localStorage:', error);
+      }
+    }
+  };
 
   const loadCustomContexts = () => {
     const contexts = new Map<string, CustomContext>();
@@ -102,11 +132,13 @@ export default function AutomationDashboard() {
         active: newWebsite.active
       };
       
-      setWebsites(prev => [...prev, websiteToAdd]);
+      const updatedWebsites = [...websites, websiteToAdd];
+      setWebsites(updatedWebsites);
+      saveWebsitesToStorage(updatedWebsites);
+      
       setNewWebsite({ domain: '', keyword: '', quota: 30, active: true });
       setShowAddWebsite(false);
       
-      // TODO: Save to backend/database
       console.log('Website added:', websiteToAdd);
     }
   };
@@ -124,11 +156,11 @@ export default function AutomationDashboard() {
       const cleanDomain = editingWebsite.domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
       const updatedWebsite = {...editingWebsite, domain: cleanDomain};
       
-      setWebsites(prev => 
-        prev.map(w => 
-          w.domain === editingWebsiteOriginalDomain ? updatedWebsite : w
-        )
+      const updatedWebsites = websites.map(w => 
+        w.domain === editingWebsiteOriginalDomain ? updatedWebsite : w
       );
+      setWebsites(updatedWebsites);
+      saveWebsitesToStorage(updatedWebsites);
       
       // Update selected websites if domain changed
       if (editingWebsiteOriginalDomain !== cleanDomain) {
@@ -146,7 +178,10 @@ export default function AutomationDashboard() {
 
   const handleDeleteWebsite = (domain: string) => {
     if (confirm(`Are you sure you want to delete ${domain}? This action cannot be undone.`)) {
-      setWebsites(prev => prev.filter(w => w.domain !== domain));
+      const updatedWebsites = websites.filter(w => w.domain !== domain);
+      setWebsites(updatedWebsites);
+      saveWebsitesToStorage(updatedWebsites);
+      
       // Also remove from selected websites if it was selected
       setSelectedWebsites(prev => prev.filter(d => d !== domain));
       // Remove custom context if exists

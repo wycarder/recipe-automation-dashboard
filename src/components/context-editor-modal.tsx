@@ -67,10 +67,22 @@ export default function ContextEditorModal({
 
   const addKeyword = () => {
     if (keywordInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        customKeywords: [...prev.customKeywords, keywordInput.trim()]
-      }));
+      // Check if input contains commas (bulk import)
+      const keywords = keywordInput.split(',').map(k => k.trim()).filter(k => k);
+      
+      if (keywords.length > 1) {
+        // Bulk import: add all keywords at once
+        setFormData(prev => ({
+          ...prev,
+          customKeywords: [...prev.customKeywords, ...keywords]
+        }));
+      } else {
+        // Single keyword
+        setFormData(prev => ({
+          ...prev,
+          customKeywords: [...prev.customKeywords, keywordInput.trim()]
+        }));
+      }
       setKeywordInput('');
     }
   };
@@ -84,13 +96,16 @@ export default function ContextEditorModal({
 
   const addSeasonalKeyword = () => {
     if (seasonalInput.keyword.trim()) {
+      // Check if input contains commas (bulk import)
+      const keywords = seasonalInput.keyword.split(',').map(k => k.trim()).filter(k => k);
+      
       setFormData(prev => ({
         ...prev,
         seasonalModifiers: {
           ...prev.seasonalModifiers,
           [seasonalInput.season]: [
             ...(prev.seasonalModifiers[seasonalInput.season as keyof typeof prev.seasonalModifiers] || []), 
-            seasonalInput.keyword.trim()
+            ...keywords
           ]
         }
       }));
@@ -273,7 +288,7 @@ export default function ContextEditorModal({
             <input
               type="text"
               style={styles.input}
-              placeholder="Add a keyword..."
+              placeholder="Add keyword or paste comma-separated: keyword1, keyword2, keyword3..."
               value={keywordInput}
               onChange={(e) => setKeywordInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
@@ -282,6 +297,9 @@ export default function ContextEditorModal({
               Add
             </button>
           </div>
+          <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+            💡 Tip: Paste multiple keywords separated by commas for bulk import
+          </p>
           <div style={{ marginTop: '0.5rem' }}>
             {formData.customKeywords.map((keyword, index) => (
               <span key={index} style={styles.keywordTag}>
@@ -304,16 +322,17 @@ export default function ContextEditorModal({
               <input
                 type="text"
                 style={styles.input}
-                placeholder={`Add ${season} keyword...`}
+                placeholder={`Add ${season} keyword or comma-separated list...`}
                 value={seasonalInput.season === season ? seasonalInput.keyword : ''}
                 onChange={(e) => setSeasonalInput({ season, keyword: e.target.value })}
-                onKeyPress={(e) => e.key === 'Enter' && addSeasonalKeyword()}
+                onKeyPress={(e) => e.key === 'Enter' && seasonalInput.season === season && addSeasonalKeyword()}
               />
               <button 
                 style={{...styles.button, ...styles.secondaryButton}} 
                 onClick={() => {
-                  setSeasonalInput({ season, keyword: '' });
-                  addSeasonalKeyword();
+                  if (seasonalInput.season === season && seasonalInput.keyword.trim()) {
+                    addSeasonalKeyword();
+                  }
                 }}
               >
                 Add
@@ -357,6 +376,7 @@ export default function ContextEditorModal({
     </div>
   );
 }
+
 
 
 

@@ -25,6 +25,8 @@ export default function AutomationDashboard() {
   const [contextEditorOpen, setContextEditorOpen] = useState(false);
   const [editingDomain, setEditingDomain] = useState<string>('');
   const [customContexts, setCustomContexts] = useState<Map<string, CustomContext>>(new Map());
+  const [editingWebsite, setEditingWebsite] = useState<WebsiteData | null>(null);
+  const [showEditWebsite, setShowEditWebsite] = useState(false);
 
   useEffect(() => {
     // Load websites from the JSON file
@@ -105,6 +107,36 @@ export default function AutomationDashboard() {
       
       // TODO: Save to backend/database
       console.log('Website added:', websiteToAdd);
+    }
+  };
+
+  const handleEditWebsite = (website: WebsiteData) => {
+    setEditingWebsite(website);
+    setShowEditWebsite(true);
+  };
+
+  const handleSaveEditWebsite = () => {
+    if (editingWebsite && editingWebsite.domain && editingWebsite.keyword) {
+      setWebsites(prev => 
+        prev.map(w => 
+          w.domain === editingWebsite.domain ? editingWebsite : w
+        )
+      );
+      setShowEditWebsite(false);
+      setEditingWebsite(null);
+      console.log('Website updated:', editingWebsite);
+    }
+  };
+
+  const handleDeleteWebsite = (domain: string) => {
+    if (confirm(`Are you sure you want to delete ${domain}? This action cannot be undone.`)) {
+      setWebsites(prev => prev.filter(w => w.domain !== domain));
+      // Also remove from selected websites if it was selected
+      setSelectedWebsites(prev => prev.filter(d => d !== domain));
+      // Remove custom context if exists
+      aiService.removeCustomContext(domain);
+      loadCustomContexts();
+      console.log('Website deleted:', domain);
     }
   };
 
@@ -429,6 +461,63 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
           </div>
         )}
 
+        {/* Edit Website Form */}
+        {showEditWebsite && editingWebsite && (
+          <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fdba74', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
+              Edit Website: {editingWebsite.domain}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Domain</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  placeholder="example.com"
+                  value={editingWebsite.domain}
+                  onChange={(e) => setEditingWebsite({...editingWebsite, domain: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Search Keyword</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  placeholder="recipe keyword"
+                  value={editingWebsite.keyword}
+                  onChange={(e) => setEditingWebsite({...editingWebsite, keyword: e.target.value})}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.25rem', display: 'block', color: '#374151' }}>Weekly Quota</label>
+                <input
+                  type="number"
+                  style={styles.input}
+                  value={editingWebsite.quota}
+                  onChange={(e) => setEditingWebsite({...editingWebsite, quota: parseInt(e.target.value) || 30})}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+                <button 
+                  style={{...styles.button, ...styles.secondaryButton}}
+                  onClick={() => {
+                    setShowEditWebsite(false);
+                    setEditingWebsite(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  style={{...styles.button, ...styles.primaryButton}}
+                  onClick={handleSaveEditWebsite}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status */}
         {status && (
           <div style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
@@ -489,11 +578,47 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      handleEditWebsite(website);
+                    }}
+                    title="Edit website"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    style={{
+                      background: 'none',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      padding: '0.25rem 0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      color: '#6b7280'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
                       handleEditContext(website.domain);
                     }}
                     title="Edit context"
                   >
                     ⚙️
+                  </button>
+                  <button
+                    style={{
+                      background: 'none',
+                      border: '1px solid #ef4444',
+                      borderRadius: '4px',
+                      padding: '0.25rem 0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      color: '#ef4444'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteWebsite(website.domain);
+                    }}
+                    title="Delete website"
+                  >
+                    🗑️
                   </button>
                   <input
                     type="checkbox"

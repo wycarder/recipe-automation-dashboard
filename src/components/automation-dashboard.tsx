@@ -26,6 +26,7 @@ export default function AutomationDashboard() {
   const [editingDomain, setEditingDomain] = useState<string>('');
   const [customContexts, setCustomContexts] = useState<Map<string, CustomContext>>(new Map());
   const [editingWebsite, setEditingWebsite] = useState<WebsiteData | null>(null);
+  const [editingWebsiteOriginalDomain, setEditingWebsiteOriginalDomain] = useState<string>('');
   const [showEditWebsite, setShowEditWebsite] = useState(false);
 
   useEffect(() => {
@@ -111,20 +112,35 @@ export default function AutomationDashboard() {
   };
 
   const handleEditWebsite = (website: WebsiteData) => {
-    setEditingWebsite(website);
+    setEditingWebsite({...website}); // Create a copy to avoid mutating original
+    setEditingWebsiteOriginalDomain(website.domain); // Store original domain
     setShowEditWebsite(true);
+    setShowAddWebsite(false); // Close add form if open
   };
 
   const handleSaveEditWebsite = () => {
     if (editingWebsite && editingWebsite.domain && editingWebsite.keyword) {
+      // Clean up the domain (remove protocol and trailing slash)
+      const cleanDomain = editingWebsite.domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const updatedWebsite = {...editingWebsite, domain: cleanDomain};
+      
       setWebsites(prev => 
         prev.map(w => 
-          w.domain === editingWebsite.domain ? editingWebsite : w
+          w.domain === editingWebsiteOriginalDomain ? updatedWebsite : w
         )
       );
+      
+      // Update selected websites if domain changed
+      if (editingWebsiteOriginalDomain !== cleanDomain) {
+        setSelectedWebsites(prev => 
+          prev.map(d => d === editingWebsiteOriginalDomain ? cleanDomain : d)
+        );
+      }
+      
       setShowEditWebsite(false);
       setEditingWebsite(null);
-      console.log('Website updated:', editingWebsite);
+      setEditingWebsiteOriginalDomain('');
+      console.log('Website updated:', updatedWebsite);
     }
   };
 
@@ -369,7 +385,15 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button 
               style={{...styles.button, ...styles.secondaryButton}}
-              onClick={() => setShowAddWebsite(!showAddWebsite)}
+              onClick={() => {
+                setShowAddWebsite(!showAddWebsite);
+                if (!showAddWebsite) {
+                  // If opening add form, close edit form
+                  setShowEditWebsite(false);
+                  setEditingWebsite(null);
+                  setEditingWebsiteOriginalDomain('');
+                }
+              }}
             >
               Add New Website
             </button>
@@ -503,6 +527,7 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
                   onClick={() => {
                     setShowEditWebsite(false);
                     setEditingWebsite(null);
+                    setEditingWebsiteOriginalDomain('');
                   }}
                 >
                   Cancel

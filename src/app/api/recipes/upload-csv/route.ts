@@ -26,12 +26,19 @@ interface WebsiteData {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 CSV upload API called');
+  
   try {
+    console.log('📥 Parsing form data...');
     const formData = await request.formData();
     const csvFile = formData.get('csvFile') as File;
     const websiteJson = formData.get('website') as string;
 
+    console.log('📋 CSV file:', csvFile ? `${csvFile.name} (${csvFile.size} bytes)` : 'Not provided');
+    console.log('🌐 Website data:', websiteJson ? 'Provided' : 'Not provided');
+
     if (!csvFile) {
+      console.error('❌ No CSV file provided');
       return NextResponse.json(
         { error: 'No CSV file provided' },
         { status: 400 }
@@ -39,13 +46,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (!websiteJson) {
+      console.error('❌ No website data provided');
       return NextResponse.json(
         { error: 'No website data provided' },
         { status: 400 }
       );
     }
 
+    console.log('🔍 Parsing website data...');
     const websiteData: WebsiteData = JSON.parse(websiteJson);
+    console.log('✅ Website data parsed:', websiteData);
 
     // Create a temporary file
     const tempDir = os.tmpdir();
@@ -380,8 +390,14 @@ async function testNotionConnection(): Promise<boolean> {
   try {
     const notionApiKey = process.env.NOTION_API_KEY;
     const recipesDbId = process.env.NOTION_RECIPES_DB_ID;
+    const websitesDbId = process.env.NOTION_WEBSITES_DB_ID;
 
-    if (!notionApiKey || !recipesDbId) {
+    console.log('🔍 Environment variables check:');
+    console.log('  NOTION_API_KEY:', notionApiKey ? 'Present' : 'Missing');
+    console.log('  NOTION_RECIPES_DB_ID:', recipesDbId ? 'Present' : 'Missing');
+    console.log('  NOTION_WEBSITES_DB_ID:', websitesDbId ? 'Present' : 'Missing');
+
+    if (!notionApiKey || !recipesDbId || !websitesDbId) {
       console.error('❌ Missing Notion API configuration');
       return false;
     }

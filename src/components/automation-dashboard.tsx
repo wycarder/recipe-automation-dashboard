@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { WebsiteData } from '../types';
 import AIKeywordService, { CustomContext } from '../services/ai-keyword-service';
 import ContextEditorModal from './context-editor-modal';
+import CSVUploadPortal from './csv-upload-portal';
+import KeywordTableDisplay from './keyword-table-display';
 
 // Import all websites data
 import allWebsitesData from '../../data/all-websites.json';
@@ -28,6 +30,8 @@ export default function AutomationDashboard() {
   const [editingWebsite, setEditingWebsite] = useState<WebsiteData | null>(null);
   const [editingWebsiteOriginalDomain, setEditingWebsiteOriginalDomain] = useState<string>('');
   const [showEditWebsite, setShowEditWebsite] = useState(false);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
+  const [showKeywordTable, setShowKeywordTable] = useState(false);
 
   const [isClient, setIsClient] = useState(false);
 
@@ -453,6 +457,18 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
             >
               📋 Copy Command
             </button>
+            <button 
+              style={{...styles.button, ...styles.secondaryButton}}
+              onClick={() => setShowCSVUpload(!showCSVUpload)}
+            >
+              📁 CSV Upload
+            </button>
+            <button 
+              style={{...styles.button, ...styles.secondaryButton}}
+              onClick={() => setShowKeywordTable(!showKeywordTable)}
+            >
+              📊 Keywords
+            </button>
           </div>
         </div>
 
@@ -733,6 +749,57 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
           ))}
         </div>
       </div>
+
+      {/* CSV Upload Portal */}
+      {showCSVUpload && (
+        <div style={styles.card}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
+            CSV Upload Portal
+          </h2>
+          <CSVUploadPortal 
+            availableWebsites={websites.map(w => ({
+              domain: w.domain,
+              name: w.domain,
+              keyword: w.keyword
+            }))}
+            onUploadComplete={(results) => {
+              console.log('CSV upload completed:', results);
+              // Refresh websites after upload
+              setWebsites(prev => [...prev]);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Keyword Table Display */}
+      {showKeywordTable && (
+        <div style={styles.card}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem', color: '#1a1a1a' }}>
+            Keyword Table Display
+          </h2>
+          <KeywordTableDisplay 
+            websites={websites}
+            recipeTheme={recipeTheme}
+            onCopyKeyword={(keyword) => {
+              navigator.clipboard.writeText(keyword);
+              setStatus(`Copied keyword: ${keyword}`);
+            }}
+            onExportCSV={() => {
+              const csvContent = "data:text/csv;charset=utf-8," 
+                + "Domain,Keyword,Quota,Active\n"
+                + websites.map(w => `${w.domain},${w.keyword},${w.quota},${w.active}`).join("\n");
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", "websites.csv");
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              setStatus('CSV exported successfully');
+            }}
+          />
+        </div>
+      )}
 
       {/* Context Editor Modal */}
       <ContextEditorModal

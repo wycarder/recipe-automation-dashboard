@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { WebsiteData } from '../types';
 import AIKeywordService, { CustomContext } from '../services/ai-keyword-service';
 import ContextEditorModal from './context-editor-modal';
+import CSVUploadPortal from './csv-upload-portal';
+import KeywordTableDisplay from './keyword-table-display';
 
 // Import all websites data
 import allWebsitesData from '../../data/all-websites.json';
@@ -28,6 +30,8 @@ export default function AutomationDashboard() {
   const [editingWebsite, setEditingWebsite] = useState<WebsiteData | null>(null);
   const [editingWebsiteOriginalDomain, setEditingWebsiteOriginalDomain] = useState<string>('');
   const [showEditWebsite, setShowEditWebsite] = useState(false);
+  const [showKeywordTable, setShowKeywordTable] = useState(false);
+  const [keywordTableData, setKeywordTableData] = useState<Array<WebsiteData & { originalKeyword?: string; aiGenerated?: boolean }>>([]);
 
   const [isClient, setIsClient] = useState(false);
 
@@ -230,6 +234,10 @@ export default function AutomationDashboard() {
         };
       }).filter(Boolean);
 
+      // Set keyword table data and show table
+      setKeywordTableData(selectedWebsiteData.filter(item => item !== null) as Array<WebsiteData & { originalKeyword?: string; aiGenerated?: boolean }>);
+      setShowKeywordTable(true);
+
       // Create JSON string for copying
       const jsonData = JSON.stringify(selectedWebsiteData, null, 2);
       const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
@@ -303,6 +311,10 @@ ${command}`);
           aiGenerated: !!aiKeywords
         };
       }).filter(Boolean);
+
+      // Set keyword table data and show table
+      setKeywordTableData(selectedWebsiteData.filter(item => item !== null) as Array<WebsiteData & { originalKeyword?: string; aiGenerated?: boolean }>);
+      setShowKeywordTable(true);
 
       const command = `node run-from-netlify.js '${JSON.stringify(selectedWebsiteData)}'`;
       
@@ -732,6 +744,54 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Keyword Table Display */}
+      {showKeywordTable && keywordTableData.length > 0 && (
+        <div style={styles.card}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a', marginBottom: '1rem' }}>
+            📊 Generated Keywords Table
+          </h2>
+          <KeywordTableDisplay 
+            websites={keywordTableData}
+            recipeTheme={recipeTheme}
+            onCopyKeyword={(keyword) => {
+              navigator.clipboard.writeText(keyword);
+              setStatus(`✅ Copied keyword: ${keyword}`);
+            }}
+            onExportCSV={() => {
+              const csvContent = keywordTableData.map(site => 
+                `${site.domain},${site.keyword},${site.quota}`
+              ).join('\n');
+              const blob = new Blob([`Domain,Keyword,Quota\n${csvContent}`], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'keywords.csv';
+              a.click();
+              URL.revokeObjectURL(url);
+              setStatus('✅ CSV exported successfully!');
+            }}
+          />
+        </div>
+      )}
+
+      {/* CSV Upload Portal */}
+      <div style={styles.card}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1a1a1a', marginBottom: '1rem' }}>
+          📁 Manual CSV Upload Portal
+        </h2>
+        <CSVUploadPortal 
+          availableWebsites={websites.map(site => ({
+            domain: site.domain,
+            name: site.domain,
+            keyword: site.keyword
+          }))}
+          onUploadComplete={(results) => {
+            console.log('CSV upload completed:', results);
+            setStatus(`✅ CSV upload completed! Processed ${results.length} recipes.`);
+          }}
+        />
       </div>
 
       {/* Context Editor Modal */}

@@ -32,6 +32,7 @@ export default function AutomationDashboard() {
   const [showEditWebsite, setShowEditWebsite] = useState(false);
   const [showKeywordTable, setShowKeywordTable] = useState(false);
   const [keywordTableData, setKeywordTableData] = useState<Array<WebsiteData & { originalKeyword?: string; aiGenerated?: boolean }>>([]);
+  const [isSpinningKeywords, setIsSpinningKeywords] = useState(false);
 
   const [isClient, setIsClient] = useState(false);
 
@@ -364,6 +365,57 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
         document.body.removeChild(textArea);
         setStatus('✅ Command copied to clipboard! Paste it in your terminal.');
       }
+    }
+  };
+
+  const handleSpinKeywords = async () => {
+    if (selectedWebsites.length === 0) {
+      alert('Please select at least one website first');
+      return;
+    }
+
+    setIsSpinningKeywords(true);
+    const themeText = recipeTheme.trim() ? ` for "${recipeTheme.trim()}" theme` : '';
+    setStatus(`🎰 Spinning new keywords using custom context${themeText}...`);
+
+    try {
+      // Generate AI keywords for all selected websites using rotation
+      // The AI service will use the recipeTheme to influence keyword generation
+      const generatedKeywords = await aiService.generateMultiWebsiteKeywords(
+        selectedWebsites,
+        recipeTheme.trim() || 'recipes', // Pass the custom theme or default to 'recipes'
+        1 // Just get the best keyword for each website
+      );
+
+      // Get the selected websites data with AI-generated keywords
+      const selectedWebsiteData = selectedWebsites.map(domain => {
+        const baseWebsite = websites.find(w => w.domain === domain);
+        if (!baseWebsite) return null;
+
+        // Use AI-generated keyword if available, otherwise fall back to original
+        const aiKeywords = generatedKeywords.get(domain);
+        const keyword = aiKeywords && aiKeywords.length > 0 ? aiKeywords[0].keyword : baseWebsite.keyword;
+
+        return {
+          ...baseWebsite,
+          keyword,
+          originalKeyword: baseWebsite.keyword,
+          aiGenerated: !!aiKeywords
+        };
+      }).filter(item => item !== null) as Array<WebsiteData & { originalKeyword?: string; aiGenerated?: boolean }>;
+
+      // Update keyword table data
+      setKeywordTableData(selectedWebsiteData);
+      setShowKeywordTable(true);
+
+      const themeInfo = recipeTheme.trim() ? ` using "${recipeTheme.trim()}" theme` : '';
+      setStatus(`🎰 Keywords spun successfully! Generated ${selectedWebsiteData.length} new keywords${themeInfo} with custom context rotation.`);
+
+    } catch (error) {
+      console.error('Error spinning keywords:', error);
+      setStatus('❌ Error spinning keywords. Please try again.');
+    } finally {
+      setIsSpinningKeywords(false);
     }
   };
 
@@ -772,6 +824,8 @@ ${Array.from(generatedKeywords.entries()).map(([domain, keywords]) =>
               URL.revokeObjectURL(url);
               setStatus('✅ CSV exported successfully!');
             }}
+            onSpinKeywords={handleSpinKeywords}
+            isSpinning={isSpinningKeywords}
           />
         </div>
       )}

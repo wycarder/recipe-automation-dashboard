@@ -15,13 +15,17 @@ interface KeywordTableDisplayProps {
   recipeTheme?: string;
   onCopyKeyword?: (keyword: string) => void;
   onExportCSV?: () => void;
+  onSpinKeywords?: () => void;
+  isSpinning?: boolean;
 }
 
 export default function KeywordTableDisplay({ 
   websites, 
   recipeTheme, 
   onCopyKeyword, 
-  onExportCSV 
+  onExportCSV,
+  onSpinKeywords,
+  isSpinning = false
 }: KeywordTableDisplayProps) {
   if (!websites || websites.length === 0) {
     return null;
@@ -145,6 +149,14 @@ export default function KeywordTableDisplay({
       {recipeTheme && (
         <div style={styles.themeInfo}>
           <strong>Recipe Theme:</strong> {recipeTheme}
+          <span style={{ 
+            fontSize: '0.75rem', 
+            color: '#8b5cf6', 
+            marginLeft: '0.5rem',
+            fontWeight: 'bold'
+          }}>
+            🎯 Theme Applied
+          </span>
         </div>
       )}
 
@@ -189,12 +201,31 @@ export default function KeywordTableDisplay({
         </tbody>
       </table>
 
-      <button
-        style={{...styles.button, ...styles.exportButton}}
-        onClick={handleExportCSV}
-      >
-        📊 Export to CSV
-      </button>
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+        <button
+          style={{...styles.button, ...styles.exportButton}}
+          onClick={handleExportCSV}
+        >
+          📊 Export to CSV
+        </button>
+        
+        {onSpinKeywords && (
+          <button
+            style={{
+              ...styles.button,
+              backgroundColor: '#8b5cf6',
+              color: 'white',
+              border: 'none',
+              opacity: isSpinning ? 0.7 : 1,
+              cursor: isSpinning ? 'not-allowed' : 'pointer'
+            }}
+            onClick={onSpinKeywords}
+            disabled={isSpinning}
+          >
+{isSpinning ? '🔄 Spinning...' : recipeTheme ? `🎰 Spin ${recipeTheme} Keywords` : '🎰 Spin Keywords'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

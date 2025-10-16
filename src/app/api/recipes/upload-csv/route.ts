@@ -94,7 +94,12 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Testing Notion connection...');
     const connectionOk = await testNotionConnection();
     if (!connectionOk) {
-      throw new Error('Failed to connect to Notion. Please check your credentials.');
+      const missingVars = [];
+      if (!process.env.NOTION_API_KEY) missingVars.push('NOTION_API_KEY');
+      if (!process.env.NOTION_RECIPES_DB_ID) missingVars.push('NOTION_RECIPES_DB_ID');
+      if (!process.env.NOTION_WEBSITES_DB_ID) missingVars.push('NOTION_WEBSITES_DB_ID');
+      
+      throw new Error(`Failed to connect to Notion. Missing environment variables: ${missingVars.join(', ')}. Please configure these in your Netlify site settings.`);
     }
 
     // Process recipes to Notion using the same logic
